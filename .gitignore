@@ -1,0 +1,7 @@
+# Captured hook-event history — contains prompts/commands from local Claude Code
+# sessions. Stays on this machine, never in the repo.
+data/events.jsonl
+data/events-*.jsonl
+data/*.tmp
+
+node_modules/

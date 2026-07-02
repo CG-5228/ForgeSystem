@@ -1,0 +1,27 @@
+{
+  "capabilities": [
+    {
+      "id": "forge-build",
+      "type": "skill",
+      "name": "forge-build",
+      "description": "Meta-skill that forges new Claude Code capabilities — skills, subagents, and hook automations — validates them, and registers them on this dashboard.",
+      "invoke": "/forge-build <describe the capability>",
+      "created": "2026-07-02T00:00:00.000Z"
+    },
+    {
+      "created": "2026-07-02T14:16:52.872Z",
+      "id": "forge-plan",
+      "type": "skill",
+      "name": "forge-plan",
+      "description": "Decompose a goal into a live task pipeline on the Forge board, then execute node-by-node with wire-in + verify discipline.",
+      "invoke": "/forge-plan <the goal to build>"
+    },
+    {
+      "created": "2026-07-02T14:39:29.389Z",
+      "id": "plan-pomodoro",
+      "type": "plan",
+      "description": "Single-file dark-mode pomodoro timer, built + verified node-by-node on the Forge board (8/8 cycle tests, 4/4 rules).",
+      "invoke": "artifacts: scratchpad/pomodoro.html"
+    }
+  ]
+}
