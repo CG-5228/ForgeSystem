@@ -8,9 +8,17 @@ argument-hint: [the goal to build]
 
 Turn the goal in $ARGUMENTS into a **live task pipeline** on the Forge board (http://localhost:4000) and execute it. Every step below is load-bearing: the board's nodes, ticker, LINE pill, and inspector are driven by your TaskCreate/TaskUpdate calls.
 
-## 1. Understand
+## 1. Understand + register the run
 
 Restate the goal in one line. Decide where the work lives (the current project, or the scratchpad if it's a throwaway demo). Only ask the user something if the goal is genuinely ambiguous.
+
+Register the run NOW (not at the end — the board's run title reads from this):
+
+```
+node "C:\Users\g1522\Documents\Projects\forgesystem\hooks\register_capability.js" "<json>"
+```
+
+with `{"id":"plan-<short-slug>","type":"plan","description":"<goal, one line>","invoke":"artifacts: <where the output will live>"}`. Works offline; never skip.
 
 ## 2. Plan as nodes
 
@@ -40,14 +48,6 @@ Keep exactly **one task in_progress at a time** (the board's LINE pill and event
 
 Verify each `[RULE]` task the same way — actually check the invariant, then complete it. A rule that FAILS stays in_progress and you create a fix task, wire it `addBlockedBy` nothing, fix, verify both. Never green a failing rule.
 
-## 6. Register the run
-
-```
-node "C:\Users\g1522\Documents\Projects\forgesystem\hooks\register_capability.js" "<json>"
-```
-
-with `{"id":"plan-<short-slug>","type":"plan","description":"<goal, one line>","invoke":"artifacts: <where the output lives>"}`. Works offline; never skip.
-
-## 7. Report
+## 6. Report
 
 Tell the user: what was built and where, the verify results (including any failed rules, honestly), and that the run is on the board at http://localhost:4000 — click any node for its history and related events.

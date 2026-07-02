@@ -28,6 +28,7 @@ const DASHBOARD = path.join(ROOT, "dashboard", "index.html");
 const MAX_MEMORY_EVENTS = 3000;      // ring buffer served to dashboard clients
 const MAX_BODY_BYTES = 512 * 1024;
 const ROTATE_BYTES = 50 * 1024 * 1024;
+const BOOT_MS = Date.now();          // sync clients detect restarts by boot stamp
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -162,6 +163,26 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Transport probe page (diagnostics): how large a response reaches the browser?
+  if (req.method === "GET" && url.pathname === "/probe") {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    return res.end(`<!DOCTYPE html><title>P</title><script>
+      (async () => {
+        for (const n of [10, 100, 400, 1000, 3000]) {
+          const t0 = performance.now();
+          try {
+            const r = await Promise.race([
+              fetch("/api/events?limit=" + n, {cache: "no-store"}).then(x => x.text()),
+              new Promise((_, rej) => setTimeout(() => rej(new Error("TO")), 4000)),
+            ]);
+            document.title += " " + n + ":" + Math.round(r.length/1024) + "K/" + Math.round(performance.now() - t0) + "ms";
+          } catch (e) { document.title += " " + n + ":" + e.message; }
+        }
+        document.title += " DONE";
+      })();
+    <\/script>`);
+  }
+
   // Hook event ingestion
   if (req.method === "POST" && url.pathname === "/events") {
     try {
@@ -171,6 +192,25 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       return json(res, 400, { ok: false, error: err.message });
     }
+  }
+
+  // Incremental sync — the dashboard's transport. Complete responses only:
+  // streaming bodies to browsers can be buffered indefinitely by network-
+  // inspection software, so the client polls this instead of holding /stream.
+  if (req.method === "GET" && url.pathname === "/api/sync") {
+    const after = Number(url.searchParams.get("after")) || 0;
+    // page size keeps each response well under the ~250KB ceiling some
+    // network-inspection software imposes on browser-bound responses
+    // (observed: ~226KB delivered, ~340KB eaten — stay conservative)
+    const PAGE = 80;
+    const pending = after > 0 ? events.filter((e) => e.id > after) : events;
+    return json(res, 200, {
+      boot: BOOT_MS,
+      events: pending.slice(0, PAGE),
+      more: pending.length > PAGE,
+      registry: readRegistry(),
+      totals: { events: totalEvents },
+    });
   }
 
   // Recent events
@@ -235,13 +275,16 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  // Live stream
-  if (req.method === "GET" && url.pathname === "/stream") {
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
-    });
+  // Live stream — /stream speaks standard SSE (curl, EventSource);
+  // /wire carries identical frames as an opaque octet stream (the dashboard
+  // uses this: some network-inspection layers buffer text/event-stream
+  // responses to browsers indefinitely, which stalls the connection).
+  if (req.method === "GET" && (url.pathname === "/stream" || url.pathname === "/wire")) {
+    res.writeHead(200, url.pathname === "/wire"
+      ? { "Content-Type": "application/octet-stream", "X-Content-Type-Options": "nosniff", "Cache-Control": "no-cache" }
+      : { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
+    if (res.flushHeaders) res.flushHeaders();
+    if (res.socket && res.socket.setNoDelay) res.socket.setNoDelay(true);
     res.write(`event: init\ndata: ${JSON.stringify({ events, registry: readRegistry(), totals: { events: totalEvents } })}\n\n`);
     sseClients.add(res);
     req.on("close", () => sseClients.delete(res));

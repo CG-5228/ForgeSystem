@@ -27,23 +27,29 @@ immediately. Then, in any Claude Code session:
 …and watch the board fill with a task pipeline that executes node by node —
 wire in + verify — exactly the mission-control view from the video.
 
-## The board
+## The board (v3 — mission control)
 
-- **Task nodes** come from Claude Code's native task system (TaskCreate/TaskUpdate +
-  TaskCreated/TaskCompleted hooks) — any session that plans with tasks gets a live
-  pipeline; `[RULE] …` subjects render as cyan ◇ compliance nodes and scroll in the
-  ticker. Dependencies (`addBlockedBy`) draw the DAG edges.
-- **Session chips**: one per session (identity color, ▸/◐/○ status, `done/total`
-  tasks, `!` when an agent is blocked on you). Click = focus that session (board,
-  LINE pill, timer, log). Double-click = full transcript viewer.
-- **SELECTED NODE**: click any node — status history, description, dependencies,
-  and the tool events that happened while it ran (attributed by time window).
-- **LIVE LOG**: mono stream of every hook event, with search + session/app/type
-  filters, pause, and click-row → full payload JSON.
-- **Top bar**: `LINE: FREE|BUSY|WAITING` (is the agent idle / working / blocked on
-  you), `● LIVE` (stream health), `T+HH:MM:SS` run timer, events/min sparkline,
-  `AGENTS`, `FORGED` (click → registry), and `FX` (toggles the CRT flavor; honors
-  `prefers-reduced-motion`).
+- **Task pipeline** from Claude Code's native task system (TaskCreate/TaskUpdate +
+  TaskCreated/TaskCompleted hooks): dense numbered nodes, status borders, duration
+  badges, `[RULE] …` tasks as cyan ◇ nodes + one glowing **COMPLIANCE n/m** billboard,
+  real `addBlockedBy` DAG edges — and the **circuit lights up green** along completed
+  chains. Defaults to the newest run; `ALL` shows per-session swimlanes.
+- **Run header**: run title derived from the `/forge-plan` goal, with a **▾ dropdown**
+  to switch runs; **segmented progress bar** (one segment per task — click = jump to
+  node); bare `HH:MM:SS` run timer; `LINE: FREE|BUSY|WAITING`; events/min sparkline.
+- **NOW strip**: the active task + elapsed, updating live under the top bar.
+- **SELECTED NODE**: click any node — status history, brief, dependencies, failures,
+  and the tool events captured while it ran; `EXPORT ⬇` downloads a markdown run report.
+- **LIVE LOG**: narrative feed (`→ TASK 07 — wire in …`, coalesced tool chatter,
+  verb-colored accents) with search/filters/pause; `DETAIL` switches to raw events;
+  click any row for full payload JSON.
+- **REPLAY**: scrub the timeline rail to watch the run re-light from any buffered
+  moment; `● LIVE` snaps back.
+- **More**: `FOLLOW` (auto-scroll to the active node), board filters
+  (`ALL·ACTIVE·FAILED·RULES`, dim-don't-hide), keyboard (`/` search · `f` follow ·
+  arrows walk nodes · `Esc`), `STATS` (tool usage, failures, task durations),
+  `FORGED` registry, `FX` toggle (CRT flavor; honors `prefers-reduced-motion`),
+  boot splash (skippable).
 
 ## The skills
 
@@ -72,6 +78,14 @@ Hooked events: SessionStart/End, UserPromptSubmit, Pre/PostToolUse,
 PostToolUseFailure, Notification, PermissionRequest, SubagentStart/Stop, Stop,
 PreCompact, **TaskCreated, TaskCompleted**. A hook adds ~50–100 ms; if the server
 is down everything no-ops silently.
+
+**Transport note:** the dashboard polls `GET /api/sync?after=<id>` once per second
+(paged ≤80 events per response) instead of holding an SSE stream — some
+network-inspection software (AV) buffers browsers' streaming response bodies
+indefinitely and silently eats responses larger than ~250 KB, which kills
+EventSource/fetch-streaming while small completed responses always pass.
+`/stream` (SSE) remains for curl/tools, and `/probe` is a built-in transport
+diagnostic page.
 
 ## Privacy & config
 

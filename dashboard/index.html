@@ -4,29 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FORGE TERMINAL</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚒</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230d0d0d'/><text x='14' y='72' font-size='60' font-family='monospace' fill='%2335d0e0'>F_</text></svg>">
 <style>
 /* ================================================================ tokens (validated dark palette + terminal extensions) */
 :root {
   --page:#0d0d0d; --surface:#141413; --panel:#161615; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
   --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10); --wash:rgba(255,255,255,.03);
   --good:#0ca30c; --warning:#fab219; --critical:#d03b3b; --seq:#3987e5;
-  --cyan:#35d0e0; --cyan-glow:rgba(53,208,224,.40); --pending:#565650;
-  --mono:"Cascadia Mono","Cascadia Code",Consolas,"JetBrains Mono","SF Mono",monospace;
+  --cyan:#35d0e0; --pending-b:#2c2c2a; --node-fill:#141413;
+  --mono:"JetBrains Mono","Cascadia Mono","Cascadia Code",Consolas,"SF Mono",monospace;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--page); color: var(--ink);
   font: 12px/1.45 var(--mono);
-  display: grid; grid-template-rows: 40px 22px 34px minmax(0,1fr) 264px;
+  display: grid; grid-template-rows: 40px 24px minmax(0,1fr) 22px 264px;
   overflow: hidden;
 }
 
-/* ================================================================ pills & shared chrome */
+/* ================================================================ shared chrome */
 .pill {
   display: inline-flex; align-items: center; gap: 5px;
-  border: 1px solid var(--ring); border-radius: 3px; padding: 2px 8px;
+  border: 1px solid var(--ring); border-radius: 9px; padding: 2px 9px;
   font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
   color: var(--ink-2); white-space: nowrap;
 }
@@ -40,98 +40,105 @@ body {
 .pill.click { cursor: pointer; }
 .pill.click:hover { border-color: rgba(255,255,255,.28); }
 .spacer { flex: 1; }
-button, select, input[type="search"] {
+button, select, input[type="search"], input[type="range"] {
   background: var(--page); color: var(--ink-2); border: 1px solid var(--ring);
-  border-radius: 3px; font: 10.5px var(--mono); padding: 3px 8px; min-width: 0;
-  text-transform: uppercase; letter-spacing: .05em;
+  border-radius: 2px; font: 10.5px var(--mono); padding: 3px 8px; min-width: 0;
+  text-transform: uppercase; letter-spacing: .05em; cursor: pointer;
 }
-input[type="search"] { text-transform: none; letter-spacing: 0; font-size: 11.5px; }
+input[type="search"] { text-transform: none; letter-spacing: 0; font-size: 11.5px; cursor: text; }
 input[type="search"]::placeholder { color: var(--muted); }
-button { cursor: pointer; white-space: nowrap; }
 button:hover, select:hover, input[type="search"]:hover { border-color: rgba(255,255,255,.25); }
 button.on { color: var(--good); border-color: rgba(12,163,12,.4); }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 ::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-thumb { background: var(--baseline); border-radius: 4px; border: 2px solid var(--panel); }
 ::-webkit-scrollbar-track { background: transparent; }
+.phos { text-shadow: 0 0 6px rgba(53,208,224,.35); }
 
 /* ================================================================ top bar */
 #topbar {
   display: flex; align-items: center; gap: 8px; padding: 0 12px;
-  border-bottom: 1px solid var(--ring); background: var(--surface);
+  border-bottom: 1px solid var(--ring); background: var(--surface); min-width: 0;
 }
 .wordmark { font-weight: 700; letter-spacing: .16em; font-size: 13px; white-space: nowrap; }
-.wordmark .glyph { margin-right: 6px; }
-#runTitle {
-  color: var(--ink-2); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 34vw;
+.wordmark .cursor { color: var(--cyan); }
+body.anim .wordmark .cursor { animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+#runBtn {
+  display: inline-flex; align-items: center; gap: 7px; max-width: 30vw;
+  background: none; border: 1px solid var(--ring); border-radius: 2px; padding: 3px 10px;
+  color: var(--ink); font-size: 11px; letter-spacing: .07em; text-transform: uppercase;
 }
-#timer { color: var(--ink); font-size: 13px; letter-spacing: .08em; white-space: nowrap; }
+#runBtn .rt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#runBtn .caret { color: var(--muted); font-size: 9px; }
+#runBtn .attn { color: var(--warning); font-weight: 700; }
+#runMenu {
+  position: fixed; z-index: 25; display: none; min-width: 300px; max-width: 460px;
+  background: var(--panel); border: 1px solid rgba(255,255,255,.14); border-radius: 2px;
+  box-shadow: 0 10px 36px rgba(0,0,0,.6); padding: 4px 0; max-height: 50vh; overflow-y: auto;
+}
+#runMenu.open { display: block; }
+#runMenu .mi {
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px; cursor: pointer;
+  font-size: 11px; color: var(--ink-2); min-width: 0;
+}
+#runMenu .mi:hover { background: var(--wash); color: var(--ink); }
+#runMenu .mi .cdot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+#runMenu .mi .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#runMenu .mi .meta { color: var(--muted); font-size: 10px; flex: none; margin-left: auto; }
+#runMenu .mi.cur { color: var(--cyan); }
+#progWrap { display: flex; align-items: center; gap: 7px; min-width: 0; }
+#progBar { display: flex; gap: 1px; height: 4px; width: clamp(80px, 14vw, 220px); align-items: stretch; }
+#progBar .seg { flex: 1; background: #242422; cursor: pointer; min-width: 2px; transition: background .25s; }
+#progBar .seg.done { background: var(--good); }
+#progBar .seg.act  { background: var(--cyan); }
+#progBar .seg.fail { background: var(--critical); }
+#progLbl { color: var(--muted); font-size: 10px; white-space: nowrap; }
+#timer { font-size: 13px; letter-spacing: .08em; white-space: nowrap; }
 #sparkWrap { display: flex; align-items: center; gap: 6px; }
-#spark { width: 96px; height: 20px; display: block; }
+#spark { width: 84px; height: 18px; display: block; }
 #rateLbl { color: var(--muted); font-size: 10px; white-space: nowrap; }
 
-/* ================================================================ ticker */
-#ticker {
-  overflow: hidden; border-bottom: 1px solid var(--ring); background: var(--page);
-  display: flex; align-items: center; position: relative;
+/* ================================================================ NOW strip */
+#nowbar {
+  display: flex; align-items: center; gap: 8px; padding: 0 12px;
+  border-bottom: 1px solid var(--ring); background: var(--page);
+  font-size: 11px; color: var(--ink-2); min-width: 0;
 }
-#tickerTrack { display: inline-flex; white-space: nowrap; will-change: transform; }
-body.anim #tickerTrack.scroll { animation: tick linear infinite; animation-duration: var(--tickdur, 30s); }
-@keyframes tick { to { transform: translateX(-50%); } }
-.tickseg { padding: 0 18px; color: var(--muted); font-size: 10.5px; letter-spacing: .04em; }
-.tickseg .rule { color: var(--cyan); }
-.tickseg .warn { color: var(--warning); }
-.tickseg .forged { color: var(--ink-2); }
-.tickseg .sep { color: var(--baseline); padding: 0 10px; }
-
-/* ================================================================ session chips */
-#chips {
-  display: flex; align-items: center; gap: 6px; padding: 0 12px;
-  border-bottom: 1px solid var(--ring); background: var(--surface);
-  overflow-x: auto; scrollbar-width: none;
-}
-#chips::-webkit-scrollbar { display: none; }
-.chip {
-  display: inline-flex; align-items: center; gap: 6px; flex: none; cursor: pointer;
-  border: 1px solid var(--ring); border-radius: 3px; padding: 3px 9px;
-  font-size: 10.5px; color: var(--ink-2); letter-spacing: .04em; user-select: none;
-}
-.chip:hover { border-color: rgba(255,255,255,.28); }
-.chip.selected { border-color: var(--cyan); color: var(--ink); }
-.chip.dim { opacity: .5; }
-.chip .cdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-.chip .sid { color: var(--muted); font-size: 9.5px; }
-.chip .st { font-size: 10px; }
-.chip .attn { color: var(--warning); font-weight: 700; }
-.chip.forgecap { color: var(--muted); cursor: default; }
-.chip.forgecap:hover { border-color: var(--ring); }
+#nowbar .k { color: var(--muted); font-size: 9.5px; letter-spacing: .14em; flex: none; }
+#nowbar .sdot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+#nowTxt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+#nowTxt b { color: var(--ink); font-weight: 600; }
+#nowbar .cursor { color: var(--cyan); flex: none; }
+body.anim #nowbar .cursor { animation: blink 1s steps(1) infinite; }
 
 /* ================================================================ board */
-#board {
-  position: relative; overflow: auto; background: var(--page);
+#board { position: relative; overflow: auto; background: var(--page); }
+body.fx #boardInner {
+  background-image: radial-gradient(circle, rgba(255,255,255,.045) 1px, transparent 1px);
+  background-size: 22px 22px;
 }
-#scan {
-  position: fixed; pointer-events: none; z-index: 3;
-  background: repeating-linear-gradient(0deg, rgba(255,255,255,.024) 0 1px, transparent 1px 3px);
-  display: none;
-}
-body.fx #scan { display: block; }
 #boardInner { position: relative; min-width: 100%; min-height: 100%; }
+#scan, #vignette { position: fixed; pointer-events: none; display: none; }
+#scan { z-index: 3; background: repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 3px); }
+#vignette { z-index: 2; box-shadow: inset 0 0 140px rgba(0,0,0,.5); }
+body.fx #scan, body.fx #vignette { display: block; }
 #edges { position: absolute; top: 0; left: 0; pointer-events: none; }
-#edges path { stroke: var(--grid); stroke-width: 1; fill: none; }
-#edges path.chain { opacity: .35; }
-#edges path.dep { stroke: var(--baseline); stroke-width: 1.2; }
-#edges path.selin { stroke: var(--cyan); opacity: .9; }
+#edges path { stroke: rgba(56,56,53,.9); stroke-width: 1; fill: none; transition: stroke .3s ease .1s, opacity .3s ease .1s; }
+#edges path.dep { stroke-width: 1.2; }
+#edges path.lit { stroke: var(--good); opacity: .75; }
+#edges path.chain { opacity: .5; }
+#edges path.chain.lit { opacity: .7; }
+#edges path.selin { stroke: var(--cyan); opacity: .9; transition: none; }
 #boardEmpty {
   position: absolute; inset: 0; display: flex; flex-direction: column; gap: 8px;
   align-items: center; justify-content: center; color: var(--muted);
-  font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-align: center;
-  padding: 20px;
+  font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-align: center; padding: 20px;
 }
 #boardEmpty .big { font-size: 15px; color: var(--ink-2); }
-#boardEmpty .hint { text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 11px; }
+#boardEmpty .hint { text-transform: none; letter-spacing: 0; font-size: 11px; }
 .band-header {
-  position: absolute; height: 20px; display: flex; align-items: center; gap: 8px;
+  position: absolute; height: 18px; display: flex; align-items: center; gap: 8px;
   font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2);
   border-bottom: 1px solid var(--grid); padding-bottom: 2px; cursor: pointer;
 }
@@ -139,60 +146,112 @@ body.fx #scan { display: block; }
 .band-header .meta { color: var(--muted); text-transform: none; letter-spacing: .02em; }
 .more-chip {
   position: absolute; display: flex; align-items: center; justify-content: center;
-  border: 1px dashed var(--baseline); border-radius: 3px; color: var(--muted);
+  border: 1px dashed var(--baseline); border-radius: 2px; color: var(--muted);
   font-size: 10px; cursor: pointer; letter-spacing: .06em;
 }
 .more-chip:hover { color: var(--ink-2); border-color: var(--muted); }
 
+/* board overlay controls */
+#boardCtl {
+  position: absolute; top: 8px; right: 12px; z-index: 4; display: flex; gap: 6px; align-items: center;
+}
+#boardCtl button { font-size: 9.5px; padding: 2px 7px; background: rgba(13,13,13,.85); }
+#boardCtl button.fon { color: var(--cyan); border-color: rgba(53,208,224,.45); }
+#replayMark {
+  position: absolute; top: 34px; right: 12px; z-index: 4; display: none;
+  color: var(--warning); font-size: 18px; font-weight: 700; letter-spacing: .3em;
+  text-shadow: 0 0 10px rgba(250,178,25,.4);
+}
+body.replaying #replayMark { display: block; }
+#scrub {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; display: none;
+  align-items: center; gap: 10px; padding: 5px 12px;
+  background: rgba(13,13,13,.92); border-top: 1px solid var(--ring);
+}
+#scrub.avail { display: flex; }
+#scrub .lbl { color: var(--muted); font-size: 9.5px; white-space: nowrap; }
+#scrub input[type="range"] { flex: 1; padding: 0; height: 16px; accent-color: var(--warning); border: none; background: transparent; }
+#scrub #btnLive2 { font-size: 9.5px; padding: 2px 8px; }
+body.replaying #scrub #btnLive2 { color: var(--warning); border-color: rgba(250,178,25,.5); }
+
 /* task nodes */
 .tnode {
-  position: absolute; display: flex; align-items: flex-start; gap: 5px;
-  background: var(--surface); border: 1px solid var(--pending); border-radius: 3px;
-  padding: 4px 7px 4px 6px; cursor: pointer; user-select: none;
-  border-left-width: 3px; transition: transform .15s ease, border-color .2s;
-  will-change: auto;
+  position: absolute; display: flex; align-items: flex-start; gap: 4px;
+  background: var(--node-fill); border: 1px solid var(--pending-b); border-radius: 2px;
+  padding: 3px 6px 3px 5px; cursor: pointer; user-select: none;
+  border-left-width: 2px;
+  transition: transform .15s ease, border-color .25s ease, background-color .25s ease, opacity .2s ease;
 }
-.tnode .tglyph { flex: none; font-size: 11px; color: var(--muted); line-height: 1.3; }
-.tnode .tidx { flex: none; font-size: 8.5px; color: var(--muted); line-height: 1.5; opacity: .8; }
+.tnode .tglyph { flex: none; font-size: 10px; color: var(--muted); line-height: 1.35; }
+.tnode .tidx { flex: none; font-size: 8px; color: var(--muted); line-height: 1.6; opacity: .75; }
 .tnode .tsub {
-  font-size: 10px; line-height: 1.32; color: var(--ink-2); overflow: hidden;
+  font-size: 9px; line-height: 1.25; color: var(--muted); overflow: hidden;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word;
 }
-.tnode.st-in_progress { border-color: var(--cyan); }
+.tnode .tdur {
+  position: absolute; right: 3px; bottom: 1px; font-size: 8px; color: var(--muted);
+  opacity: 0; transition: opacity .4s ease .35s;
+}
+.tnode.st-completed .tdur { opacity: .9; }
+.tnode.st-in_progress { background: rgba(53,208,224,.08); border-color: rgba(53,208,224,.6); }
 .tnode.st-in_progress .tglyph { color: var(--cyan); }
 .tnode.st-in_progress .tsub { color: var(--ink); }
-body.anim .tnode.st-in_progress::after {
-  content: ""; position: absolute; inset: -1px; border-radius: 3px; pointer-events: none;
-  box-shadow: 0 0 9px var(--cyan-glow), inset 0 0 5px rgba(53,208,224,.12);
+body.anim.runview .tnode.st-in_progress::after {
+  content: ""; position: absolute; inset: -1px; border-radius: 2px; pointer-events: none;
+  box-shadow: 0 0 10px rgba(53,208,224,.35);
   animation: nodepulse 2.4s ease-in-out infinite;
 }
 @keyframes nodepulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
-.tnode.st-completed { border-color: var(--good); }
+.tnode.st-completed { background: rgba(12,163,12,.06); border-color: rgba(12,163,12,.30); }
 .tnode.st-completed .tglyph { color: var(--good); }
-.tnode.st-completed .tsub { color: var(--muted); }
-.tnode.failed { border-color: var(--critical); }
-.tnode.failed .tglyph { color: var(--critical); }
-.tnode.rule { border-style: solid; }
+.tnode.haserr { background: rgba(208,59,59,.05); border-color: rgba(208,59,59,.55); }
+.tnode.haserr .tglyph { color: var(--critical); }
+.tnode.rule { border-color: rgba(53,208,224,.45); }
 .tnode.rule .tglyph { color: var(--cyan); }
 .tnode.rule::before {
-  content: ""; position: absolute; top: -1px; left: -3px; width: 7px; height: 7px; pointer-events: none;
+  content: ""; position: absolute; top: -1px; left: -2px; width: 6px; height: 6px; pointer-events: none;
   border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan);
 }
 .tnode.stubbed .tsub { font-style: italic; }
 .tnode.sel { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan); }
 .tnode.sel .tsub { color: var(--ink); }
-.tnode.compact { padding: 2px 6px 2px 5px; }
-.tnode.compact .tsub { -webkit-line-clamp: 1; font-size: 9px; }
-.tnode.summary { border-style: dashed; border-color: var(--good); justify-content: center; align-items: center; cursor: default; }
-.tnode.summary .tsub { color: var(--good); -webkit-line-clamp: 1; }
+.tnode.dimmed { opacity: .22; }
+#edges path.dimmed { opacity: .12; }
+.tnode.compact { padding: 2px 5px 2px 4px; }
+.tnode.compact .tsub { -webkit-line-clamp: 1; font-size: 8.5px; }
+.tnode.compact .tdur { display: none; }   /* badges collide with 1-line subjects */
+.tnode.billboard {
+  justify-content: center; align-items: center; cursor: pointer;
+  border-color: rgba(53,208,224,.55);
+  box-shadow: 0 0 14px rgba(53,208,224,.30), inset 0 0 8px rgba(53,208,224,.10);
+}
+.tnode.billboard .tsub {
+  color: var(--cyan); -webkit-line-clamp: 1; font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; text-shadow: 0 0 6px rgba(53,208,224,.35);
+}
+@media (forced-colors: active) { .tnode { box-shadow: none !important; } }
+
+/* ================================================================ ticker (between board and bottom) */
+#ticker {
+  overflow: hidden; border-top: 1px solid var(--ring); border-bottom: 1px solid var(--ring);
+  background: var(--surface); display: flex; align-items: center; position: relative;
+}
+#tickerTrack { display: inline-flex; white-space: nowrap; will-change: transform; }
+body.anim #tickerTrack.scroll { animation: tick linear infinite; animation-duration: var(--tickdur, 30s); }
+@keyframes tick { to { transform: translateX(-50%); } }
+.tickseg { padding: 0 18px; color: var(--muted); font-size: 10.5px; letter-spacing: .04em; }
+.tickseg .rule { color: var(--cyan); text-shadow: 0 0 6px rgba(53,208,224,.25); }
+.tickseg .warn { color: var(--warning); }
+.tickseg .forged { color: var(--ink-2); }
+.tickseg .sep { color: var(--baseline); padding: 0 10px; }
 
 /* ================================================================ bottom panels */
 #bottom {
   display: grid; grid-template-columns: clamp(340px, 28vw, 460px) minmax(0,1fr); gap: 10px;
-  padding: 10px 12px 12px; min-height: 0; background: var(--page); border-top: 1px solid var(--ring);
+  padding: 10px 12px 12px; min-height: 0; background: var(--page);
 }
 .bpanel {
-  background: var(--panel); border: 1px solid var(--ring); border-radius: 4px;
+  background: var(--panel); border: 1px solid var(--ring); border-radius: 2px;
   display: flex; flex-direction: column; min-height: 0; min-width: 0;
 }
 .bhead {
@@ -201,6 +260,7 @@ body.anim .tnode.st-in_progress::after {
   text-transform: uppercase; color: var(--ink-2);
 }
 .bbody { flex: 1; overflow-y: auto; min-height: 0; }
+#logPanel { border-left: 3px solid rgba(12,163,12,.5); }
 
 /* inspector */
 #insp { padding: 10px 12px; }
@@ -227,39 +287,36 @@ body.anim .tnode.st-in_progress::after {
 .schip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--ring); border-radius: 2px; padding: 1px 6px; font-size: 10px; cursor: pointer; color: var(--ink-2); }
 .schip .cdot { width: 7px; height: 7px; border-radius: 50%; }
 
-/* log */
+/* log — narrative feed */
 #logHead { gap: 6px; }
 #logHead input[type="search"] { flex: 1; }
-#logHead select { max-width: 130px; }
+#logHead select { max-width: 120px; }
 #log { padding: 3px 0 6px; }
 .row {
-  display: grid; grid-template-columns: 62px 118px minmax(0,1fr); gap: 8px;
-  padding: 2.5px 10px; align-items: baseline; cursor: pointer;
+  display: grid; grid-template-columns: 10px minmax(0,1fr) 56px; gap: 7px;
+  padding: 2.5px 10px 2.5px 8px; align-items: baseline; cursor: pointer;
 }
 body.anim .row.fresh { animation: flash .8s ease-out; }
 @keyframes flash { from { background: rgba(255,255,255,.07); } to { background: transparent; } }
 .row:hover { background: var(--wash); }
-.row .t { color: var(--muted); font-size: 10px; }
-.row .who { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
-.row .sdot { width: 7px; height: 7px; border-radius: 50%; flex: none; align-self: center; }
-.row .app { color: var(--ink-2); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row .what { min-width: 0; display: flex; gap: 7px; align-items: baseline; }
-.badge {
-  flex: none; font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em;
-  border: 1px solid var(--ring); border-radius: 2px; padding: 0 5px; line-height: 14px;
-}
-.badge.fail { color: var(--critical); border-color: rgba(208,59,59,.45); }
-.badge.attn { color: var(--warning); border-color: rgba(250,178,25,.45); }
-.badge.task { color: var(--cyan); border-color: rgba(53,208,224,.35); }
-.badge.forge { color: var(--ink-2); border-color: rgba(255,255,255,.25); }
-.row .msg { color: var(--ink); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .acc { width: 3px; height: 11px; align-self: center; background: var(--baseline); }
+.row.v-create .acc { background: var(--cyan); }
+.row.v-done .acc   { background: var(--good); }
+.row.v-fail .acc   { background: var(--critical); }
+.row.v-attn .acc   { background: var(--warning); }
+.row.v-user .acc   { background: var(--ink); }
+.row .t { color: var(--muted); font-size: 9.5px; text-align: right; }
+.row .msg { color: var(--ink-2); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.row .msg b { color: var(--ink); font-weight: 600; }
 .row .msg .dim { color: var(--muted); }
-.row .msg b { font-weight: 600; }
+.row .msg .sdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+.row.thead .msg { color: var(--ink); font-weight: 600; }
+.row.detail .msg { color: var(--muted); font-size: 10.5px; }
 
-/* ================================================================ modal + tooltip */
+/* ================================================================ tooltip / modal / boot */
 #tip {
   position: fixed; z-index: 30; pointer-events: none; display: none; max-width: 340px;
-  background: #1e1e1d; border: 1px solid rgba(255,255,255,.14); border-radius: 3px;
+  background: #1e1e1d; border: 1px solid rgba(255,255,255,.14); border-radius: 2px;
   padding: 7px 10px; font-size: 11px; color: var(--ink-2); box-shadow: 0 6px 24px rgba(0,0,0,.5);
 }
 #overlay {
@@ -268,7 +325,7 @@ body.anim .row.fresh { animation: flash .8s ease-out; }
 }
 #overlay.open { display: flex; }
 #modal {
-  background: var(--panel); border: 1px solid rgba(255,255,255,.14); border-radius: 4px;
+  background: var(--panel); border: 1px solid rgba(255,255,255,.14); border-radius: 2px;
   width: min(760px, 92vw); max-height: 84vh; display: flex; flex-direction: column;
   box-shadow: 0 12px 48px rgba(0,0,0,.6);
 }
@@ -282,52 +339,66 @@ body.anim .row.fresh { animation: flash .8s ease-out; }
 .turn .text { color: var(--ink-2); font-size: 11.5px; white-space: pre-wrap; word-break: break-word; }
 .turn.user .text { color: var(--ink); }
 .regrow { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--grid); font-size: 11px; }
-.regrow .rid { color: var(--cyan); flex: none; width: 120px; }
+.regrow .rid { color: var(--cyan); flex: none; width: 130px; }
 .regrow .rtype { color: var(--muted); flex: none; width: 46px; text-transform: uppercase; font-size: 9.5px; padding-top: 2px; }
 .regrow .rdesc { color: var(--ink-2); }
 .regrow .rdesc .inv { color: var(--muted); display: block; margin-top: 2px; }
+.statrow { display: flex; align-items: center; gap: 10px; padding: 3px 0; font-size: 11px; }
+.statrow .sk { width: 140px; flex: none; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.statrow .sbar { height: 8px; background: var(--seq); min-width: 2px; }
+.statrow .sv { color: var(--muted); font-size: 10px; }
+.stath { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 12px 0 5px; }
+.stath:first-child { margin-top: 0; }
+#boot {
+  position: fixed; inset: 0; z-index: 60; background: var(--page); display: none;
+  align-items: center; justify-content: center; cursor: pointer;
+}
+#boot.on { display: flex; }
+#boot pre { font: 13px/1.9 var(--mono); color: var(--good); text-shadow: 0 0 8px rgba(12,163,12,.35); margin: 0; }
+#boot pre .c { color: var(--cyan); }
 
-/* ================================================================ motion / fx ladder */
+/* ================================================================ motion / narrow */
 @media (prefers-reduced-motion: reduce) {
-  body.anim #tickerTrack.scroll, body.anim .tnode.st-in_progress::after, body.anim .row.fresh { animation: none !important; }
-  .tnode { transition: none; }
+  body.anim #tickerTrack.scroll, body.anim.runview .tnode.st-in_progress::after,
+  body.anim .row.fresh, body.anim .wordmark .cursor, body.anim #nowbar .cursor { animation: none !important; }
+  .tnode, #edges path { transition: none; }
 }
-@media (forced-colors: active) {
-  .tnode { box-shadow: none !important; }
-  body.fx #scan { display: none; }
-}
-
-/* ================================================================ narrow */
+@media (max-width: 1280px) { #sparkWrap { display: none; } }
+@media (max-width: 1150px) { #progLbl { display: none; } }
 @media (max-width: 1100px) {
-  #bottom { grid-template-columns: 1fr; grid-template-rows: 1fr; }
-  #inspPanel { position: fixed; left: 0; top: 96px; bottom: 0; width: 340px; z-index: 20; display: none; border-radius: 0 4px 0 0; }
+  #bottom { grid-template-columns: 1fr; }
+  #inspPanel { position: fixed; left: 0; top: 64px; bottom: 0; width: 340px; z-index: 20; display: none; border-radius: 0; }
   #inspPanel.open { display: flex; }
+  #pillTerm { display: none; }
 }
-@media (max-width: 820px) {
-  #runTitle { display: none; }
-  #sparkWrap { display: none; }
-}
+@media (max-width: 860px) { #progWrap { display: none; } #runBtn { max-width: 22vw; } }
 </style>
 </head>
 <body class="fx anim">
 
 <div id="topbar">
-  <div class="wordmark"><span class="glyph">⚒</span>FORGE</div>
-  <span class="pill">Terminal</span>
+  <div class="wordmark phos">FORGE<span class="cursor">▍</span></div>
+  <span class="pill" id="pillTerm">Terminal</span>
   <span class="pill off" id="linePill">LINE: —</span>
   <span class="pill dead" id="livePill"><span class="dot"></span><span id="liveTxt">CONNECTING</span></span>
-  <span id="runTitle">ALL SESSIONS</span>
+  <button id="runBtn" aria-label="select run"><span class="rt" id="runTitle">ALL SESSIONS</span><span class="attn" id="runAttn" hidden>!</span><span class="caret">▾</span></button>
   <span class="spacer"></span>
-  <span id="timer">T+00:00:00</span>
-  <span id="sparkWrap"><svg id="spark" viewBox="0 0 96 20" preserveAspectRatio="none"></svg><span id="rateLbl">0/m</span></span>
+  <span id="progWrap" hidden><span id="progBar"></span><span id="progLbl"></span></span>
+  <span id="timer" class="phos">00:00:00</span>
+  <span id="sparkWrap"><svg id="spark" viewBox="0 0 84 18" preserveAspectRatio="none" aria-hidden="true"></svg><span id="rateLbl">0/m</span></span>
   <span class="pill" id="agentsPill">AGENTS 0</span>
-  <span class="pill click" id="forgedPill">FORGED 0</span>
-  <span class="pill click" id="fxPill">FX</span>
+  <span class="pill click" id="forgedPill" role="button" tabindex="0">FORGED 0</span>
+  <span class="pill click" id="statsPill" role="button" tabindex="0">STATS</span>
+  <span class="pill click" id="fxPill" role="button" tabindex="0" aria-label="toggle visual effects">FX</span>
 </div>
+<div id="runMenu" role="menu"></div>
 
-<div id="ticker"><div id="tickerTrack"></div></div>
-
-<div id="chips"></div>
+<div id="nowbar">
+  <span class="k">▸ NOW</span>
+  <span class="sdot" id="nowDot" style="background:var(--baseline)"></span>
+  <span id="nowTxt">idle — waiting for agents</span>
+  <span class="cursor">▍</span>
+</div>
 
 <div id="board">
   <div id="boardInner">
@@ -335,41 +406,63 @@ body.anim .row.fresh { animation: flash .8s ease-out; }
     <div id="boardEmpty">
       <div class="big">AWAITING AGENTS…</div>
       <div>machine-wide hooks armed · run claude in any project</div>
-      <div class="hint">tip: /forge-plan &lt;goal&gt; fills this board with a build pipeline</div>
+      <div class="hint">/forge-plan &lt;goal&gt; fills this board · keys: / search · f follow · esc close</div>
     </div>
   </div>
+  <div id="boardCtl">
+    <button id="btnFollow" aria-label="follow active node">FOLLOW</button>
+    <button data-bf="all" class="fon">ALL</button>
+    <button data-bf="active">ACTIVE</button>
+    <button data-bf="failed">FAILED</button>
+    <button data-bf="rules">RULES</button>
+  </div>
+  <div id="replayMark">REPLAY</div>
+  <div id="scrub">
+    <span class="lbl" id="scrubL">buffered start</span>
+    <input type="range" id="scrubR" min="0" max="0" value="0" aria-label="replay timeline">
+    <button id="btnLive2">● LIVE</button>
+  </div>
   <div id="scan"></div>
+  <div id="vignette"></div>
 </div>
+
+<div id="ticker"><div id="tickerTrack"></div></div>
 
 <div id="bottom">
   <div class="bpanel" id="inspPanel">
-    <div class="bhead"><span>Selected node</span><span class="spacer"></span><button id="inspClose" style="display:none">✕</button></div>
+    <div class="bhead"><span>── Selected node ──</span><span class="spacer"></span><button id="inspClose" style="display:none" aria-label="close inspector">✕</button></div>
     <div class="bbody" id="insp"><div class="empty">Select a node to inspect it.</div></div>
   </div>
-  <div class="bpanel">
+  <div class="bpanel" id="logPanel">
     <div class="bhead" id="logHead">
-      <span>Live log</span>
-      <input type="search" id="fSearch" placeholder="search events (tool, file, prompt…)">
-      <select id="fSession"><option value="">ALL SESSIONS</option></select>
-      <select id="fApp"><option value="">ALL APPS</option></select>
-      <select id="fType"><option value="">ALL EVENTS</option></select>
+      <span>── Live log ──</span>
+      <input type="search" id="fSearch" placeholder="search (/)">
+      <select id="fSession" aria-label="session filter"><option value="">ALL SESSIONS</option></select>
+      <select id="fType" aria-label="event type filter"><option value="">ALL EVENTS</option></select>
+      <button id="btnDetail" aria-pressed="false">DETAIL</button>
       <button id="btnLive" class="on">● LIVE</button>
-      <button id="btnClear">CLR</button>
+      <button id="btnClear" aria-label="clear log">CLR</button>
     </div>
-    <div class="bbody" id="log" role="table" aria-label="Event log"></div>
+    <div class="bbody" id="log" role="log" aria-label="Event log"></div>
   </div>
 </div>
 
 <div id="tip"></div>
 <div id="overlay">
   <div id="modal">
-    <div class="mhead"><span class="mtitle" id="modalTitle"></span><span class="spacer"></span><button id="modalClose">✕ CLOSE</button></div>
+    <div class="mhead"><span class="mtitle" id="modalTitle"></span><span class="spacer"></span><button id="modalExport" style="display:none">EXPORT ⬇</button><button id="modalClose">✕ CLOSE</button></div>
     <div class="mbody" id="modalBody"></div>
   </div>
 </div>
+<div id="boot"><pre id="bootTxt"></pre></div>
 
 <script>
 "use strict";
+window.addEventListener("error", (e) => {
+  let el = document.getElementById("errbox");
+  if (!el) { el = document.createElement("div"); el.id = "errbox"; el.hidden = true; document.body.appendChild(el); }
+  el.textContent += `SCRIPT ERROR: ${e.message} @ line ${e.lineno} || `;
+});
 /* ================================================================ constants */
 const CAT = ["#3987e5","#199e70","#c98500","#008300","#9085e9","#e66767","#d55181","#d95926"];
 const OVERFLOW = "#898781";
@@ -382,11 +475,14 @@ const state = {
   events: [], byId: new Map(),
   sessions: new Map(),
   registry: [], totalEvents: 0,
-  paused: false, stick: true,
-  filters: { session: "", app: "", type: "", q: "" },
-  seenTypes: new Set(), seenApps: new Set(),
-  view: "all",                 // "all" | session id
-  sel: null,                   // {sid, tid}
+  paused: false, stick: true, detailMode: false,
+  filters: { session: "", type: "", q: "" },
+  seenTypes: new Set(),
+  view: "all", viewManual: false,
+  sel: null,
+  boardFilter: "all",
+  follow: false,
+  replayIdx: null,           // ev.id ceiling while scrubbing, else null
 };
 const slots = new Array(CAT.length).fill(null);
 const rateWin = [];
@@ -394,13 +490,17 @@ let lastHeartbeatMs = 0;
 
 /* dirty flags — one rAF paint pass */
 let paintScheduled = false;
-let chipsDirty = true, boardRebuild = true, tickerDirty = true, inspectorDirty = false;
-const dirtyTasks = new Set();      // task objects needing class/text refresh
-const pendingAdds = [];            // tasks to incrementally add to the board
+let boardRebuild = true, tickerDirty = true, inspectorDirty = false, runMenuDirty = true;
+const dirtyTasks = new Set();
+const dirtyEdges = new Set();          // "sid:taskId" whose adjacent edges need class sync
+const pendingAdds = [];
 let logQueue = [];
 
 const $ = (id) => document.getElementById(id);
 const logEl = $("log"), tip = $("tip");
+const nodeEls = new Map();             // "sid:tid" -> element
+const edgeEls = new Map();             // edge key -> path element
+let lastPositions = new Map();         // task -> {x,y} from last layout (arrow nav, follow)
 
 /* ================================================================ utils */
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -409,12 +509,11 @@ const fmtTime = (ms) => { const d = new Date(ms); return isNaN(d) ? "" : d.toTim
 const compact = (n) => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e4 ? Math.round(n/1e3)+"K" : n >= 1e3 ? (n/1e3).toFixed(1)+"K" : String(n);
 const fmtElapsed = (ms) => {
   const s = Math.max(0, Math.floor(ms / 1000));
-  const hh = String(Math.floor(s / 3600)).padStart(2, "0");
-  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
-  const ss = String(s % 60).padStart(2, "0");
-  return `T+${hh}:${mm}:${ss}`;
+  return `${String(Math.floor(s/3600)).padStart(2,"0")}:${String(Math.floor((s%3600)/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 };
+const fmtDur = (ms) => ms < 1000 ? "<1s" : ms < 60000 ? Math.round(ms/1000) + "s" : ms < 3600000 ? Math.round(ms/60000) + "m" : (ms/3600000).toFixed(1) + "h";
 const STATUS_GLYPH = { pending: "·", in_progress: "▸", completed: "✓", deleted: "✕" };
+const cleanSubject = (s) => String(s).replace(/^\s*\[(RULE|COMPLIANCE)\]\s*/i, "").replace(/^\s*RULE:\s*/i, "");
 
 function extractTaskId(r) {
   if (r == null) return null;
@@ -426,11 +525,10 @@ function extractTaskId(r) {
   const m = s.match(/task\s*#?\s*(\d+)/i) || s.match(/#(\d+)/);
   return m ? m[1] : null;
 }
-
 function allocSlot(sid) { const i = slots.indexOf(null); if (i >= 0) { slots[i] = sid; return i; } return -1; }
 function freeSlot(sid) { const i = slots.indexOf(sid); if (i >= 0) slots[i] = null; }
-
 function schedulePaint() { if (!paintScheduled) { paintScheduled = true; requestAnimationFrame(paint); } }
+const nk = (sid, tid) => `${sid}:${tid}`;
 
 /* ================================================================ sessions */
 function getSession(ev) {
@@ -445,31 +543,26 @@ function getSession(ev) {
       agents: new Map(), pending: new Map(), attention: 0, transcriptPath: null,
       tasks: new Map(), taskSeq: 0, activeTaskId: null, activeLog: [],
       lastPromptMs: 0, lastStopMs: 0, hasDeps: false,
-      tierCounts: [],           // tasks per tier (slot assignment)
-      _chipEl: null,
+      tierCounts: [],
+      runTitle: null, firstPromptTitle: null, firstTaskMs: 0,
     };
     state.sessions.set(ev.session_id, s);
-    chipsDirty = true;
-    if (state.view === "all") boardRebuild = true;   // new swimlane band
+    if (state.view === "all") boardRebuild = true;
+    runMenuDirty = true;
     refreshSelect("fSession");
   }
   return s;
 }
-
 function evict(s) {
-  if (s.evicted) return;
-  if (s.tasks.size > 0) return;          // task boards are never evicted — chip dims instead
+  if (s.evicted || s.tasks.size > 0) return;
   s.evicted = true;
   freeSlot(s.id);
-  chipsDirty = true;
+  runMenuDirty = true;
   if (state.view === s.id) { state.view = "all"; boardRebuild = true; }
   else if (state.view === "all") boardRebuild = true;
 }
-
 function reapAgents(s) {
-  for (const a of s.agents.values()) {
-    if (a.running > 0) { a.running = 0; a.done += 1; a._stale = false; }
-  }
+  for (const a of s.agents.values()) if (a.running > 0) { a.running = 0; a.done += 1; a._stale = false; }
 }
 
 /* ================================================================ task reducer */
@@ -481,12 +574,13 @@ function taskUpsert(s, id, fields, ev, src) {
     t = {
       id, sid: s.id, subject: "", description: "", activeForm: "",
       status: "pending", isRule: false, blockedBy: new Set(),
-      provisional: false, stub: false, seq,
-      createdMs: ev._ms, createdEvId: ev.id, startedMs: 0, doneMs: 0,
+      provisional: false, stub: false, seq, failCount: 0,
+      createdMs: ev._ms, createdEvId: ev.id, startedMs: 0, doneMs: 0, durMs: 0,
       history: [], lastStatusEvId: 0,
-      tier: -1, slot: -1, _el: null,
+      tier: -1, slot: -1,
     };
     s.tasks.set(id, t);
+    if (!s.firstTaskMs) s.firstTaskMs = ev._ms;
   }
   if (fields.subject != null && fields.subject !== "") {
     t.subject = String(fields.subject);
@@ -499,7 +593,7 @@ function taskUpsert(s, id, fields, ev, src) {
   if (fields.stub) t.stub = true;
   if (fields.blockedBy) {
     for (const dep of fields.blockedBy) t.blockedBy.add(String(dep));
-    if (t.blockedBy.size) s.hasDeps = true;
+    if (t.blockedBy.size) { s.hasDeps = true; boardRebuild = true; }
   }
   if (fields.status && fields.status !== t.status && ev.id > t.lastStatusEvId) {
     t.status = fields.status;
@@ -509,20 +603,27 @@ function taskUpsert(s, id, fields, ev, src) {
       t.startedMs = t.startedMs || ev._ms;
       s.activeTaskId = id;
       s.activeLog.push({ ms: ev._ms, taskId: id });
+      narrateTaskStart(s, t, ev);
+      if (state.follow) followTo(s.id, id);
     }
     if (fields.status === "completed" || fields.status === "deleted") {
       t.doneMs = ev._ms;
+      if (t.startedMs) t.durMs = t.doneMs - t.startedMs;
       if (s.activeTaskId === id) s.activeTaskId = null;
     }
+    dirtyEdges.add(nk(s.id, id));
     tickerDirty = true;
     if (state.sel && state.sel.sid === s.id && state.sel.tid === id) inspectorDirty = true;
   }
   if (isNew) {
     assignTierSlot(s, t);
     pendingAdds.push(t);
-    if (s.tasks.size === 1) boardRebuild = true;   // session's first task — its band must be created
-    if (t.isRule) tickerDirty = true;
-    chipsDirty = true;   // task counts on chips
+    if (s.tasks.size === 1) {
+      boardRebuild = true;
+      // default-to-run: first pipeline task pulls focus unless the user chose a view
+      if (!state.viewManual && state.view !== s.id) switchView(s.id, false);
+    }
+    if (t.isRule) { tickerDirty = true; boardRebuild = true; } // billboard count/geometry
   } else {
     dirtyTasks.add(t);
   }
@@ -541,9 +642,7 @@ function assignTierSlot(s, t) {
 }
 
 function activeTaskAt(s, ms) {
-  for (let i = s.activeLog.length - 1; i >= 0; i--) {
-    if (s.activeLog[i].ms <= ms) return s.activeLog[i].taskId;
-  }
+  for (let i = s.activeLog.length - 1; i >= 0; i--) if (s.activeLog[i].ms <= ms) return s.activeLog[i].taskId;
   return null;
 }
 
@@ -557,10 +656,7 @@ function handleTaskTool(s, ev) {
       let id = extractTaskId(tr);
       let provisional = false;
       if (id == null) { id = String(s.taskSeq + 1); provisional = true; }
-      taskUpsert(s, id, {
-        subject: ti.subject ?? tr?.task?.subject, description: ti.description,
-        activeForm: ti.activeForm, status: "pending", provisional,
-      }, ev, "create");
+      taskUpsert(s, id, { subject: ti.subject ?? tr?.task?.subject, description: ti.description, activeForm: ti.activeForm, status: "pending", provisional }, ev, "create");
       break;
     }
     case "TaskUpdate": {
@@ -568,13 +664,8 @@ function handleTaskTool(s, ev) {
       if (tr && typeof tr === "object" && tr.success === false) return;
       const id = String(ti.taskId ?? extractTaskId(tr) ?? "");
       if (!id) return;
-      if (!s.tasks.has(id)) {
-        taskUpsert(s, id, { subject: `TASK ${id} (unseen create)`, stub: true }, ev, "update");
-      }
-      taskUpsert(s, id, {
-        status: ti.status, subject: ti.subject, description: ti.description,
-        activeForm: ti.activeForm, blockedBy: ti.addBlockedBy,
-      }, ev, "update");
+      if (!s.tasks.has(id)) taskUpsert(s, id, { subject: `TASK ${id} (unseen create)`, stub: true }, ev, "update");
+      taskUpsert(s, id, { status: ti.status, subject: ti.subject, description: ti.description, activeForm: ti.activeForm, blockedBy: ti.addBlockedBy }, ev, "update");
       break;
     }
     case "TaskList": case "TaskGet": {
@@ -587,19 +678,17 @@ function handleTaskTool(s, ev) {
       for (const item of list) {
         const id = item && (item.id ?? item.taskId ?? item.task_id);
         if (id == null) continue;
-        // rebind a provisional task whose guessed id was wrong, by exact subject
         if (!s.tasks.has(String(id)) && item.subject) {
           for (const [k, t] of s.tasks) {
             if (t.provisional && t.subject === item.subject) {
-              s.tasks.delete(k); t.id = String(id); t.provisional = false; s.tasks.set(t.id, t);
-              dirtyTasks.add(t); break;
+              s.tasks.delete(k);
+              nodeEls.delete(nk(s.id, t.id));
+              t.id = String(id); t.provisional = false; s.tasks.set(t.id, t);
+              boardRebuild = true; break;
             }
           }
         }
-        taskUpsert(s, String(id), {
-          subject: item.subject, status: item.status,
-          blockedBy: item.blockedBy, description: item.description,
-        }, ev, "list");
+        taskUpsert(s, String(id), { subject: item.subject, status: item.status, blockedBy: item.blockedBy, description: item.description }, ev, "list");
       }
       break;
     }
@@ -608,7 +697,7 @@ function handleTaskTool(s, ev) {
 
 /* ================================================================ ingest */
 function ingest(ev, quiet) {
-  if (state.byId.has(ev.id)) return;                       // resurrect replay overlap
+  if (state.byId.has(ev.id)) return;
   ev._ms = Date.parse(ev.timestamp) || Date.now();
   const p = ev.payload || {};
   const t = ev.hook_event_name;
@@ -621,7 +710,6 @@ function ingest(ev, quiet) {
     for (const d of state.events.splice(0, state.events.length - 3000)) state.byId.delete(d.id);
   }
   if (!state.seenTypes.has(t)) { state.seenTypes.add(t); refreshSelect("fType"); }
-  if (!state.seenApps.has(ev.source_app)) { state.seenApps.add(ev.source_app); refreshSelect("fApp"); }
   if (!quiet) rateWin.push(ev._ms);
 
   if (NODELESS.has(t)) {
@@ -637,8 +725,8 @@ function ingest(ev, quiet) {
 
   switch (t) {
     case "SessionStart":
-      if (s.ended) { s.ended = false; s.endedMs = 0; chipsDirty = true; }
-      if (s.evicted) { s.evicted = false; s.slot = allocSlot(s.id); s.color = s.slot >= 0 ? CAT[s.slot] : OVERFLOW; chipsDirty = true; boardRebuild = true; }
+      if (s.ended) { s.ended = false; s.endedMs = 0; runMenuDirty = true; }
+      if (s.evicted) { s.evicted = false; s.slot = allocSlot(s.id); s.color = s.slot >= 0 ? CAT[s.slot] : OVERFLOW; boardRebuild = true; runMenuDirty = true; }
       if (p.source === "clear" || p.source === "resume") {
         for (const other of state.sessions.values()) {
           if (other.id !== s.id && other.app === s.app && other.ended && !other.evicted) evict(other);
@@ -647,18 +735,26 @@ function ingest(ev, quiet) {
       break;
     case "SessionEnd":
       s.ended = true; s.endedMs = ev._ms; s.lastStopMs = ev._ms;
-      freeSlot(s.id);            // color recycles; chip keeps snapshot color, dims
-      reapAgents(s); chipsDirty = true;
+      freeSlot(s.id);
+      reapAgents(s); runMenuDirty = true;
       break;
     case "Stop":
       s.lastStopMs = ev._ms;
       reapAgents(s); s.pending.clear();
-      if (s.attention) { s.attention = 0; chipsDirty = true; }
+      if (s.attention) { s.attention = 0; runMenuDirty = true; }
       break;
-    case "UserPromptSubmit":
+    case "UserPromptSubmit": {
       s.lastPromptMs = ev._ms;
-      if (s.attention) { s.attention = 0; chipsDirty = true; }
+      const prompt = String(p.prompt || "");
+      const fp = prompt.match(/^\s*\/forge-plan\s+(.{4,})/i);   // anchored: invocations only, not prose mentioning it
+      if (fp) { s.runTitle = fp[1].trim(); runMenuDirty = true; tickerDirty = true; }
+      else if (!s.firstPromptTitle && prompt.length >= 12 && !prompt.startsWith("/")) {
+        const line = prompt.split("\n")[0].replace(/[#*_`~\u{1F300}-\u{1FAFF}☀-➿]/gu, "").replace(/\s+/g, " ").trim();
+        if (line.length >= 12) s.firstPromptTitle = line.slice(0, 70);
+      }
+      if (s.attention) { s.attention = 0; runMenuDirty = true; }
       break;
+    }
     case "SubagentStart": {
       const type = p.agent_type || "agent";
       const a = s.agents.get(type) || { type, running: 0, done: 0, lastStartMs: 0, _stale: false };
@@ -676,23 +772,28 @@ function ingest(ev, quiet) {
         q.push(ev._ms); if (q.length > 20) q.shift();
         s.pending.set(p.tool_name, q);
       }
-      if (s.attention) { s.attention = 0; chipsDirty = true; }
+      if (s.attention) { s.attention = 0; runMenuDirty = true; }
       break;
     }
     case "PostToolUse":
     case "PostToolUseFailure": {
-      if (TASK_TOOLS.has(p.tool_name)) { handleTaskTool(s, ev); }
+      if (TASK_TOOLS.has(p.tool_name)) handleTaskTool(s, ev);
       else {
         const q = s.pending.get(p.tool_name);
         if (q && q.length) ev._dur = ev._ms - q.shift();
         if (p.duration_ms != null) ev._dur = p.duration_ms;
+        if (t === "PostToolUseFailure") {
+          const atid = activeTaskAt(s, ev._ms);
+          const at = atid && s.tasks.get(atid);
+          if (at) { at.failCount++; at.lastFailMs = ev._ms; dirtyTasks.add(at); }
+        }
       }
-      if (s.attention) { s.attention = 0; chipsDirty = true; }
+      if (s.attention) { s.attention = 0; runMenuDirty = true; }
       break;
     }
     case "PermissionRequest":
     case "Notification":
-      s.attention++; chipsDirty = true; tickerDirty = true;
+      s.attention++; runMenuDirty = true; tickerDirty = true;
       break;
     case "TaskCreated":
       if (p.task_id != null) taskUpsert(s, String(p.task_id), { subject: p.task_subject ?? p.subject ?? p.title, status: "pending" }, ev, "hook");
@@ -707,8 +808,7 @@ function ingest(ev, quiet) {
 
   if (!quiet) {
     queueLogRow(ev);
-    // live-append related event to open inspector
-    if (state.sel && state.sel.sid === s.id && !TASK_TOOLS.has(p.tool_name)) {
+    if (state.sel && state.sel.sid === s.id) {
       const selT = s.tasks.get(state.sel.tid);
       if (selT && selT.status === "in_progress" && s.activeTaskId === selT.id) inspectorDirty = true;
     }
@@ -716,7 +816,24 @@ function ingest(ev, quiet) {
   }
 }
 
-/* ================================================================ log */
+function runTitleOf(s) {
+  if (s.runTitle) return s.runTitle;
+  const cap = state.registry.find(c => c.type === "plan" && c.description && c.session_id === s.id);
+  if (cap) return cap.description;
+  if (s.firstPromptTitle) return s.firstPromptTitle;
+  return `${s.app} · ${shortId(s.id)}`;
+}
+
+/* ================================================================ log — narrative feed */
+function verbClass(ev) {
+  const t = ev.hook_event_name, tn = (ev.payload || {}).tool_name;
+  if (t === "PostToolUseFailure") return "v-fail";
+  if (t === "PermissionRequest" || t === "Notification") return "v-attn";
+  if (t === "UserPromptSubmit") return "v-user";
+  if (t === "TaskCompleted" || (tn === "TaskUpdate" && (ev.payload.tool_input || {}).status === "completed")) return "v-done";
+  if (t === "TaskCreated" || tn === "TaskCreate" || (tn === "TaskUpdate" && (ev.payload.tool_input || {}).status === "in_progress")) return "v-create";
+  return "";
+}
 function summarize(ev) {
   const p = ev.payload || {};
   const t = ev.hook_event_name;
@@ -725,17 +842,21 @@ function summarize(ev) {
   const dur = ev._dur != null ? ` <span class="dim">· ${(ev._dur/1000).toFixed(1)}s</span>` : "";
   switch (t) {
     case "PreToolUse":
-      if (p.tool_name === "TaskCreate") return `+ task <span class="dim">${esc(String(ti.subject || "").slice(0, 90))}</span>`;
-      if (p.tool_name === "TaskUpdate") return `task #${esc(ti.taskId || "?")} <span class="dim">${esc(ti.status || "update")}</span>`;
+      if (p.tool_name === "TaskCreate") return `+ node <span class="dim">${esc(String(ti.subject || "").slice(0, 90))}</span>`;
+      if (TASK_TOOLS.has(p.tool_name)) return `<span class="dim">${esc(p.tool_name)}…</span>`;
       return `<b>${esc(p.tool_name || "tool")}</b> <span class="dim">${esc(String(brief).slice(0,110))}</span>`;
     case "PostToolUse":
-      if (p.tool_name === "TaskCreate") { const id = extractTaskId(p.tool_response); return `wired in task #${esc(id ?? "?")} <span class="dim">${esc(String(ti.subject || "").slice(0, 80))}</span>`; }
-      if (p.tool_name === "TaskUpdate") return `task #${esc(ti.taskId || "?")} → <b>${esc(ti.status || "updated")}</b>`;
+      if (p.tool_name === "TaskCreate") { const id = extractTaskId(p.tool_response); return `node <b>#${esc(id ?? "?")}</b> wired in <span class="dim">${esc(String(ti.subject || "").slice(0, 80))}</span>`; }
+      if (p.tool_name === "TaskUpdate") {
+        if (ti.status === "completed") return `task #${esc(ti.taskId)} — <b>verified ✓</b>`;
+        if (ti.status === "in_progress") return `task #${esc(ti.taskId)} — <b>wire in</b>`;
+        return `task #${esc(ti.taskId || "?")} <span class="dim">${esc(ti.status || "updated")}</span>`;
+      }
       if (p.tool_name === "TaskList" || p.tool_name === "TaskGet") return `<span class="dim">${esc(p.tool_name)} reconcile</span>`;
       return `<b>${esc(p.tool_name || "tool")}</b> <span class="dim">${esc(String(brief).slice(0,100))}</span>${dur}`;
     case "PostToolUseFailure": {
       const r = typeof p.tool_response === "string" ? p.tool_response : JSON.stringify(p.tool_response || p.error || "");
-      return `<b>${esc(p.tool_name || "tool")}</b> <span class="dim">failed — ${esc(String(r).slice(0,90))}</span>${dur}`;
+      return `<b>${esc(p.tool_name || "tool")}</b> failed <span class="dim">— ${esc(String(r).slice(0,90))}</span>${dur}`;
     }
     case "UserPromptSubmit":  return `“${esc(String(p.prompt || "").slice(0,120))}”`;
     case "Notification":      return esc(String(p.message || "").slice(0,120));
@@ -746,64 +867,147 @@ function summarize(ev) {
     case "SessionEnd":        return `session ended <span class="dim">(${esc(p.reason || "")})</span>`;
     case "Stop":              return `turn completed`;
     case "PreCompact":        return `compacting context…`;
-    case "TaskCreated":       return `task #${esc(p.task_id ?? "?")} created <span class="dim">${esc(String(p.task_subject || "").slice(0, 80))}</span>`;
-    case "TaskCompleted":     return `task #${esc(p.task_id ?? "?")} <b>verified ✓</b> <span class="dim">${esc(String(p.task_subject || "").slice(0, 70))}</span>`;
-    case "ForgeBuild":        return `⚒ forged <b>${esc(p.name || "capability")}</b> <span class="dim">(${esc(p.type || "")})</span>`;
+    case "TaskCreated":       return `node <b>#${esc(p.task_id ?? "?")}</b> <span class="dim">${esc(String(p.task_subject || "").slice(0, 80))}</span>`;
+    case "TaskCompleted":     return `task #${esc(p.task_id ?? "?")} — <b>verified ✓</b> <span class="dim">${esc(cleanSubject(String(p.task_subject || "")).slice(0, 70))}</span>`;
+    case "ForgeBuild":        return `◆ forged <b>${esc(p.name || "capability")}</b> <span class="dim">(${esc(p.type || "")})</span>`;
     default:                  return `<span class="dim">${esc(JSON.stringify(p).slice(0,110))}</span>`;
   }
 }
-
-function badgeCls(ev) {
-  const t = ev.hook_event_name;
-  if (t === "PostToolUseFailure") return "badge fail";
-  if (t === "PermissionRequest" || t === "Notification") return "badge attn";
-  if (t === "ForgeBuild") return "badge forge";
-  if (t === "TaskCreated" || t === "TaskCompleted" || TASK_TOOLS.has((ev.payload || {}).tool_name)) return "badge task";
-  return "badge";
-}
-function badgeLabel(t) { return t === "PostToolUseFailure" ? "✕ FAIL" : t.replace(/([a-z])([A-Z])/g, "$1·$2"); }
-
 function rowMatches(ev) {
   const f = state.filters;
   return (!f.session || ev.session_id === f.session)
-      && (!f.app || ev.source_app === f.app)
       && (!f.type || ev.hook_event_name === f.type)
       && (!f.q || ev._search.includes(f.q));
 }
-
 function colorOfSid(sid) { const s = state.sessions.get(sid); return s ? s.color : OVERFLOW; }
+const showDot = () => state.view === "all" && !state.filters.session;
 
-function buildRow(ev, fresh) {
+function buildRow(ev, fresh, cls) {
   const div = document.createElement("div");
-  div.className = fresh ? "row fresh" : "row";
+  div.className = `row ${verbClass(ev)} ${cls || ""} ${fresh ? "fresh" : ""}`;
   div.dataset.id = ev.id;
-  div.innerHTML =
-    `<span class="t">${fmtTime(ev._ms)}</span>` +
-    `<span class="who"><span class="sdot" style="background:${colorOfSid(ev.session_id)}"></span>` +
-      `<span class="app">${esc(ev.source_app)}</span></span>` +
-    `<span class="what"><span class="${badgeCls(ev)}">${esc(badgeLabel(ev.hook_event_name))}</span>` +
-      `<span class="msg">→ ${summarize(ev)}</span></span>`;
+  const dot = showDot() ? `<span class="sdot" style="background:${colorOfSid(ev.session_id)}"></span>` : "";
+  div.innerHTML = `<span class="acc"></span><span class="msg">${dot}→ ${summarize(ev)}</span><span class="t">${fmtTime(ev._ms)}</span>`;
   return div;
 }
 
+/* coalescing: per-session live detail line while a task runs */
+const coalesce = new Map(); // sid -> {taskId, el, count, lastTxt}
+function narrateTaskStart(s, t, ev) {
+  coalesce.delete(s.id);
+  if (state.detailMode || rawMode()) return;
+  if (state.paused || !rowMatches(ev)) return;
+  logQueue.push({ header: true, ev, subject: t.subject, taskId: t.id });
+}
+function rawMode() { return state.detailMode || !!state.filters.q || !!state.filters.type; }
+
 function queueLogRow(ev) {
   if (state.paused || !rowMatches(ev)) return;
-  logQueue.push(ev);
+  const p = ev.payload || {};
+  if (!rawMode() && /^(PreToolUse|PostToolUse)$/.test(ev.hook_event_name) && !TASK_TOOLS.has(p.tool_name)) {
+    // coalesce tool chatter into the active task's detail line
+    const s = state.sessions.get(ev.session_id);
+    const atid = s && s.activeTaskId;
+    if (atid) {
+      if (ev.hook_event_name === "PreToolUse") return; // count on Post only
+      let c = coalesce.get(ev.session_id);
+      if (!c || c.taskId !== atid) { c = { taskId: atid, el: null, count: 0 }; coalesce.set(ev.session_id, c); }
+      c.count++;
+      const brief = (p.tool_input || {}).file_path || (p.tool_input || {}).command || "";
+      c.lastTxt = `· ${c.count} tool${c.count === 1 ? "" : "s"} · last: ${p.tool_name} ${String(brief).split(/[\\\/]/).pop().slice(0, 40)}${ev._dur != null ? ` · ${(ev._dur/1000).toFixed(1)}s` : ""}`;
+      logQueue.push({ coalesce: true, sid: ev.session_id, ev });
+      return;
+    }
+  }
+  logQueue.push({ ev });
 }
 function flushLog() {
   if (!logQueue.length) return;
   const frag = document.createDocumentFragment();
-  for (const ev of logQueue) frag.appendChild(buildRow(ev, true));
+  for (const item of logQueue) {
+    if (item.coalesce) {
+      const c = coalesce.get(item.sid);
+      if (!c) continue;
+      if (c.el && c.el.isConnected) { c.el.querySelector(".msg").textContent = `  ${c.lastTxt}`; continue; }
+      const div = document.createElement("div");
+      div.className = "row detail";
+      div.dataset.id = item.ev.id;
+      div.innerHTML = `<span class="acc"></span><span class="msg"></span><span class="t"></span>`;
+      div.querySelector(".msg").textContent = `  ${c.lastTxt}`;
+      c.el = div;
+      frag.appendChild(div);
+    } else if (item.header) {
+      const div = document.createElement("div");
+      div.className = "row thead v-create";
+      div.dataset.id = item.ev.id;
+      const dot = showDot() ? `<span class="sdot" style="background:${colorOfSid(item.ev.session_id)}"></span>` : "";
+      div.innerHTML = `<span class="acc"></span><span class="msg">${dot}→ TASK ${esc(item.taskId)} — ${esc(cleanSubject(item.subject))}</span><span class="t">${fmtTime(item.ev._ms)}</span>`;
+      frag.appendChild(div);
+    } else {
+      frag.appendChild(buildRow(item.ev, true));
+    }
+  }
   logQueue = [];
-  logEl.appendChild(frag);
+  if (frag.childNodes.length) logEl.appendChild(frag);
   while (logEl.children.length > 500) logEl.removeChild(logEl.firstChild);
   if (state.stick) logEl.scrollTop = logEl.scrollHeight;
 }
 function rebuildLog() {
-  logQueue = [];
+  logQueue = []; coalesce.clear();
   logEl.innerHTML = "";
   const frag = document.createDocumentFragment();
-  for (const ev of state.events.filter(rowMatches).slice(-500)) frag.appendChild(buildRow(ev, false));
+  const evs = state.events.filter(rowMatches);
+  if (rawMode()) {
+    for (const ev of evs.slice(-500)) frag.appendChild(buildRow(ev, false));
+  } else {
+    // reconstruct narrative: task headers + coalesced runs + notable rows
+    const rows = [];
+    const lastActive = new Map(); // sid -> taskId
+    for (const ev of evs) {
+      const p = ev.payload || {};
+      const t = ev.hook_event_name;
+      const s = state.sessions.get(ev.session_id);
+      const isTool = /^(PreToolUse|PostToolUse)$/.test(t) && !TASK_TOOLS.has(p.tool_name);
+      const startMatch = t === "PostToolUse" && p.tool_name === "TaskUpdate" && (p.tool_input || {}).status === "in_progress";
+      if (startMatch && s) {
+        const tid = String((p.tool_input || {}).taskId);
+        const task = s.tasks.get(tid);
+        lastActive.set(ev.session_id, tid);
+        rows.push({ header: true, ev, taskId: tid, subject: task ? task.subject : `#${tid}` });
+        continue;
+      }
+      if (isTool) {
+        if (t === "PreToolUse") continue;
+        const atid = s && activeTaskAt(s, ev._ms);
+        if (atid && lastActive.get(ev.session_id) === atid) {
+          const prev = rows[rows.length - 1];
+          const brief = (p.tool_input || {}).file_path || (p.tool_input || {}).command || "";
+          const txt = `· ${(prev && prev.coalCount || 0) + 1} tools · last: ${p.tool_name} ${String(brief).split(/[\\\/]/).pop().slice(0, 40)}`;
+          if (prev && prev.coal && prev.sid === ev.session_id) { prev.coalCount++; prev.txt = txt; prev.ev = ev; continue; }
+          rows.push({ coal: true, sid: ev.session_id, ev, coalCount: 1, txt });
+          continue;
+        }
+      }
+      rows.push({ ev });
+    }
+    for (const r of rows.slice(-500)) {
+      if (r.header) {
+        const div = document.createElement("div");
+        div.className = "row thead v-create"; div.dataset.id = r.ev.id;
+        const dot = showDot() ? `<span class="sdot" style="background:${colorOfSid(r.ev.session_id)}"></span>` : "";
+        div.innerHTML = `<span class="acc"></span><span class="msg">${dot}→ TASK ${esc(r.taskId)} — ${esc(cleanSubject(r.subject))}</span><span class="t">${fmtTime(r.ev._ms)}</span>`;
+        frag.appendChild(div);
+      } else if (r.coal) {
+        const div = document.createElement("div");
+        div.className = "row detail"; div.dataset.id = r.ev.id;
+        div.innerHTML = `<span class="acc"></span><span class="msg"></span><span class="t"></span>`;
+        div.querySelector(".msg").textContent = `  ${r.txt}`;
+        frag.appendChild(div);
+      } else {
+        frag.appendChild(buildRow(r.ev, false));
+      }
+    }
+  }
   logEl.appendChild(frag);
   logEl.scrollTop = logEl.scrollHeight;
 }
@@ -814,10 +1018,7 @@ function refreshSelect(id) {
   const cur = sel.value;
   if (id === "fSession") {
     sel.innerHTML = `<option value="">ALL SESSIONS</option>` +
-      [...state.sessions.values()].map(s =>
-        `<option value="${esc(s.id)}">${esc(s.app)} · ${esc(shortId(s.id))}${s.ended ? " · ended" : ""}</option>`).join("");
-  } else if (id === "fApp") {
-    sel.innerHTML = `<option value="">ALL APPS</option>` + [...state.seenApps].sort().map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
+      [...state.sessions.values()].map(s => `<option value="${esc(s.id)}">${esc(s.app)} · ${esc(shortId(s.id))}${s.ended ? " · ended" : ""}</option>`).join("");
   } else if (id === "fType") {
     sel.innerHTML = `<option value="">ALL EVENTS</option>` + [...state.seenTypes].sort().map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
   }
@@ -825,43 +1026,37 @@ function refreshSelect(id) {
 }
 
 /* ================================================================ board layout */
-let NODE_W = 150, NODE_H = 40, GAP_X = 14, GAP_Y = 18, PAD = 24, BAND_HEAD = 26;
+let NODE_W = 118, NODE_H = 30, GAP_X = 10, GAP_Y = 12, PAD = 20, BAND_HEAD = 22;
 let compactMode = false;
 
 function layoutCols() {
   const w = $("board").clientWidth || 1200;
-  NODE_W = w <= 1300 ? 132 : 150;
-  return Math.max(4, Math.min(12, Math.floor((w - PAD * 2) / (NODE_W + GAP_X))));
+  NODE_W = w >= 1500 ? 124 : 118;
+  return Math.max(4, Math.min(14, Math.floor((w - PAD * 2) / (NODE_W + GAP_X))));
 }
-
 function visibleSessions() {
   return [...state.sessions.values()]
     .filter(s => !s.evicted && (state.view === "all" ? true : s.id === state.view))
     .sort((a, b) => a.firstMs - b.firstMs);
 }
 
-/* compute pixel positions; returns {positions Map(task->xy), bands:[…], width, height} */
 function computeLayout() {
   const cols = layoutCols();
-  const nodeH = compactMode ? 26 : NODE_H;
+  const nodeH = compactMode ? 22 : NODE_H;
   const pitchY = nodeH + GAP_Y;
   const all = visibleSessions();
   const sessions = all.filter(s => s.tasks.size > 0);
   const freeform = state.view === "all" ? all.filter(s => s.tasks.size === 0 && !s.ended) : [];
   const positions = new Map(), bands = [];
-  let y = 16;
+  let y = 38;                       // clears the FOLLOW/filter control strip overlay
   const maxRowsPerBand = state.view === "all" ? 3 : Infinity;
 
   for (const s of sessions) {
     const tasks = [...s.tasks.values()].sort((a, b) => (a.tier - b.tier) || (a.slot - b.slot) || (a.seq - b.seq));
-    // group into pixel rows: tier by tier, wrapping tiers wider than cols
     const rows = [];
     let curTier = -1, rowBuf = null;
     for (const t of tasks) {
-      if (t.tier !== curTier || rowBuf.length >= cols) {
-        if (t.tier !== curTier || rowBuf.length >= cols) { rowBuf = []; rows.push({ tier: t.tier, items: rowBuf }); }
-        curTier = t.tier;
-      }
+      if (t.tier !== curTier || rowBuf.length >= cols) { rowBuf = []; rows.push({ tier: t.tier, items: rowBuf }); curTier = t.tier; }
       rowBuf.push(t);
     }
     const bandTop = y;
@@ -870,70 +1065,175 @@ function computeLayout() {
     let hidden = 0;
     for (const r of rows.slice(maxRowsPerBand)) hidden += r.items.length;
     shownRows.forEach((row, ri) => {
-      row.items.forEach((t, ci) => {
-        positions.set(t, { x: PAD + ci * (NODE_W + GAP_X), y: y + ri * pitchY });
-      });
+      row.items.forEach((t, ci) => positions.set(t, { x: PAD + ci * (NODE_W + GAP_X), y: y + ri * pitchY }));
     });
     y += shownRows.length * pitchY;
-    bands.push({ s, top: bandTop, hidden, moreY: y });
-    if (hidden > 0) y += 30;
-    y += state.view === "all" ? 18 : 8;
+    // COMPLIANCE billboard: after the grid, when the band has rules
+    let billboard = null;
+    const rules = tasks.filter(t => t.isRule);
+    if (rules.length && hidden === 0) {
+      billboard = { x: PAD, y: y + 2, w: NODE_W * 2 + GAP_X, done: rules.filter(r => r.status === "completed").length, total: rules.length };
+      y += nodeH + 10;
+    }
+    bands.push({ s, top: bandTop, hidden, moreY: y, billboard });
+    if (hidden > 0) y += 28;
+    y += state.view === "all" ? 16 : 6;
   }
-  for (const s of freeform) {
-    bands.push({ s, top: y, hidden: 0, moreY: y, freeform: true });
-    y += BAND_HEAD + 10;
-  }
-  return { positions, bands, hasTaskNodes: positions.size > 0 || sessions.length > 0, height: Math.max(y + 20, $("board").clientHeight), nodeH };
+  for (const s of freeform) { bands.push({ s, top: y, hidden: 0, moreY: y, freeform: true }); y += BAND_HEAD + 8; }
+  return { positions, bands, height: Math.max(y + 40, $("board").clientHeight), nodeH };
 }
 
+/* ================================================================ node + edge rendering */
 function nodeClass(t) {
   let c = `tnode st-${t.status}`;
+  if (t.failCount > 0 && t.status !== "completed") c += " haserr";
   if (t.isRule) c += " rule";
   if (t.stub) c += " stubbed";
   if (compactMode) c += " compact";
   if (state.sel && state.sel.sid === t.sid && state.sel.tid === t.id) c += " sel";
+  if (!matchesBoardFilter(t)) c += " dimmed";
   return c;
 }
-
-function nodeGlyph(t) { return t.isRule && t.status === "pending" ? "◇" : (STATUS_GLYPH[t.status] || "·"); }
-
+function nodeGlyph(t) {
+  if (t.failCount > 0 && t.status !== "completed") return "✕";
+  if (t.isRule && t.status === "pending") return "◇";
+  return STATUS_GLYPH[t.status] || "·";
+}
+function matchesBoardFilter(t) {
+  switch (state.boardFilter) {
+    case "active": return t.status === "in_progress";
+    case "failed": return t.failCount > 0;
+    case "rules":  return t.isRule;
+    default: return true;
+  }
+}
 function fillNodeEl(el, t) {
   el.className = nodeClass(t);
   el.style.width = NODE_W + "px";
-  el.style.borderLeftColor = colorOfSid(t.sid);
+  el.style.borderLeftColor = state.view === "all" ? colorOfSid(t.sid) : "#3a3a37";
   el.dataset.sid = t.sid; el.dataset.tid = t.id;
-  el.innerHTML = `<span class="tglyph">${nodeGlyph(t)}</span><span class="tidx">${esc(String(t.id).padStart(2, "0"))}</span><div class="tsub">${esc(t.subject.replace(/^\s*\[(RULE|COMPLIANCE)\]\s*/i, "").replace(/^\s*RULE:\s*/i, ""))}</div>`;
+  const dur = t.durMs > 0 ? `<span class="tdur">${fmtDur(t.durMs)}</span>` : "";
+  el.innerHTML = `<span class="tglyph">${nodeGlyph(t)}</span><span class="tidx">${esc(String(t.id).padStart(2, "0"))}</span><div class="tsub">${esc(cleanSubject(t.subject))}</div>${dur}`;
+}
+function updateNodeEl(t) {
+  const el = nodeEls.get(nk(t.sid, t.id));
+  if (!el || !el.isConnected) return;
+  fillNodeEl(el, t); // cheap full refill; transform untouched → transitions/animations unaffected
+}
+function removeTaskNode(t) {
+  const key = nk(t.sid, t.id);
+  const el = nodeEls.get(key);
+  if (el) el.remove();
+  nodeEls.delete(key);
 }
 
-function edgeKey(a, b) { return `e:${a.sid}:${a.id}:${b.id}`; }
-function edgePath(p1, p2, nodeH) {
+/* edges: shared builder, keyed elements, class-only status sync */
+function edgeDescriptors(s, positions, nodeH) {
+  const out = [];
+  const chain = [];
+  for (const [t, pos] of positions) {
+    if (t.sid !== s.id) continue;
+    chain.push(t);
+    for (const depId of t.blockedBy) {
+      const dep = s.tasks.get(depId);
+      const dp = dep && positions.get(dep);
+      if (!dp) continue;
+      out.push({ key: `d:${s.id}:${depId}:${t.id}`, cls: "dep", from: dep, to: t, d: elbow(dp, positions.get(t), nodeH) });
+    }
+  }
+  if (!s.hasDeps && chain.length > 1) {
+    chain.sort((a, b) => a.seq - b.seq);
+    for (let i = 0; i < chain.length - 1; i++) {
+      const a = chain[i], b = chain[i + 1];
+      const p1 = positions.get(a), p2 = positions.get(b);
+      const d = p1.y === p2.y ? hstub(p1, p2, nodeH) : elbow(p1, p2, nodeH);
+      out.push({ key: `c:${s.id}:${a.id}:${b.id}`, cls: "chain", from: a, to: b, d });
+    }
+  }
+  return out;
+}
+function elbow(p1, p2, nodeH) {
   const x1 = p1.x + NODE_W / 2, y1 = p1.y + nodeH;
   const x2 = p2.x + NODE_W / 2, y2 = p2.y;
-  const midY = y1 + Math.max(6, (y2 - y1) / 2);
+  const midY = y1 + Math.max(5, (y2 - y1) / 2);
   return `M${x1},${y1} V${midY} H${x2} V${y2}`;
 }
+function hstub(p1, p2, nodeH) {
+  const y = p1.y + nodeH / 2;
+  return p1.x < p2.x
+    ? `M${p1.x + NODE_W},${y} H${p2.x}`
+    : `M${p1.x},${y} H${p2.x + NODE_W}`;
+}
+function edgeClass(desc, replayStatus) {
+  const st = (t) => replayStatus ? replayStatus(t) : t.status;
+  let lit;
+  if (desc.cls === "dep") lit = st(desc.from) === "completed";
+  else lit = st(desc.from) === "completed" && st(desc.to) === "completed";
+  let c = desc.cls + (lit ? " lit" : "");
+  if (state.sel && desc.to.sid === state.sel.sid && desc.to.id === state.sel.tid) c += " selin";
+  if (!matchesBoardFilter(desc.from) && !matchesBoardFilter(desc.to)) c += " dimmed";
+  return c;
+}
+function syncEdges(bands, positions, nodeH) {
+  const svg = $("edges");
+  const seen = new Set();
+  for (const band of bands) {
+    if (band.freeform) continue;
+    for (const desc of edgeDescriptors(band.s, positions, nodeH)) {
+      seen.add(desc.key);
+      let el = edgeEls.get(desc.key);
+      if (!el) {
+        el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        el.dataset.key = desc.key;
+        edgeEls.set(desc.key, el);
+        svg.appendChild(el);
+      }
+      if (el.getAttribute("d") !== desc.d) el.setAttribute("d", desc.d);
+      const cls = edgeClass(desc);
+      if (el.getAttribute("class") !== cls) el.setAttribute("class", cls);
+      el._desc = desc;
+    }
+  }
+  for (const [key, el] of edgeEls) if (!seen.has(key)) { el.remove(); edgeEls.delete(key); }
+}
+function syncDirtyEdgeClasses() {
+  if (!dirtyEdges.size) return;
+  for (const el of edgeEls.values()) {
+    const d = el._desc;
+    if (!d) continue;
+    if (dirtyEdges.has(nk(d.from.sid, d.from.id)) || dirtyEdges.has(nk(d.to.sid, d.to.id))) {
+      const cls = edgeClass(d);
+      if (el.getAttribute("class") !== cls) el.setAttribute("class", cls);
+    }
+  }
+  dirtyEdges.clear();
+}
 
+/* full structural (re)build */
 function rebuildBoard() {
-  const inner = $("boardInner"), edges = $("edges");
-  // clear node elements (keep #edges + #boardEmpty)
+  const inner = $("boardInner");
   for (const el of [...inner.querySelectorAll(".tnode, .band-header, .more-chip")]) el.remove();
-  edges.innerHTML = "";
+  nodeEls.clear();
+  for (const el of edgeEls.values()) el.remove();
+  edgeEls.clear();
 
   const { positions, bands, height, nodeH } = computeLayout();
-  const anyTasks = bands.length > 0;
-  $("boardEmpty").style.display = anyTasks ? "none" : "flex";
-  if (!anyTasks && state.view !== "all") {
-    $("boardEmpty").innerHTML = `<div class="big">NO TASKS IN THIS SESSION</div><div>agent running freeform</div><div class="hint">/forge-plan &lt;goal&gt; fills this board with a build pipeline</div>`;
-  } else if (!anyTasks) {
-    $("boardEmpty").innerHTML = `<div class="big">AWAITING AGENTS…</div><div>machine-wide hooks armed · run claude in any project</div><div class="hint">tip: /forge-plan &lt;goal&gt; fills this board with a build pipeline</div>`;
+  lastPositions = positions;
+  document.body.classList.toggle("runview", state.view !== "all");
+  const anyBands = bands.length > 0;
+  $("boardEmpty").style.display = anyBands ? "none" : "flex";
+  if (!anyBands) {
+    $("boardEmpty").innerHTML = state.view !== "all"
+      ? `<div class="big">NO TASKS IN THIS SESSION</div><div>agent running freeform</div><div class="hint">/forge-plan &lt;goal&gt; builds a pipeline here</div>`
+      : `<div class="big">AWAITING AGENTS…</div><div>machine-wide hooks armed · run claude in any project</div><div class="hint">/forge-plan &lt;goal&gt; fills this board · keys: / search · f follow · esc close</div>`;
   }
   const w = $("board").clientWidth;
   inner.style.height = height + "px";
+  const edges = $("edges");
   edges.setAttribute("width", w); edges.setAttribute("height", height);
   edges.setAttribute("viewBox", `0 0 ${w} ${height}`);
 
   const frag = document.createDocumentFragment();
-  let edgeHtml = "";
   for (const band of bands) {
     const s = band.s;
     if (state.view === "all") {
@@ -942,7 +1242,7 @@ function rebuildBoard() {
       if (band.freeform) h.style.opacity = ".55";
       h.style.left = PAD + "px"; h.style.top = band.top + "px"; h.style.width = `calc(100% - ${PAD * 2}px)`;
       const meta = band.freeform
-        ? `${shortId(s.id)} · freeform — no task pipeline · /forge-plan to build one`
+        ? `${shortId(s.id)} · freeform — no pipeline`
         : `${shortId(s.id)} · ${s.tasks.size} tasks · ${[...s.tasks.values()].filter(t => t.status === "completed").length} done${s.ended ? " · ended" : ""}`;
       h.innerHTML = `<span class="bar" style="background:${s.color}"></span>${esc(s.app)} <span class="meta">${esc(meta)}</span>`;
       frag.appendChild(h);
@@ -952,167 +1252,256 @@ function rebuildBoard() {
       const m = document.createElement("div");
       m.className = "more-chip"; m.dataset.sid = s.id;
       m.style.left = PAD + "px"; m.style.top = band.moreY + "px";
-      m.style.width = NODE_W + "px"; m.style.height = "22px";
+      m.style.width = NODE_W + "px"; m.style.height = "20px";
       m.textContent = `+${band.hidden} MORE ▸`;
       frag.appendChild(m);
     }
-    // nodes + edges for this session
-    const chain = [];
     for (const [t, pos] of positions) {
       if (t.sid !== s.id) continue;
       const el = document.createElement("div");
       fillNodeEl(el, t);
+      el.style.transition = "none";
       el.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
-      el.style.transition = "none";               // no slide-in on rebuild
-      t._el = el;
+      nodeEls.set(nk(t.sid, t.id), el);
       frag.appendChild(el);
-      chain.push(t);
-      for (const depId of t.blockedBy) {
-        const dep = s.tasks.get(depId);
-        const dp = dep && positions.get(dep);
-        if (dp) edgeHtml += `<path class="dep" data-key="${esc(edgeKey(dep, t))}" data-to="${esc(t.sid)}:${esc(t.id)}" d="${edgePath(dp, positions.get(t), nodeH)}"/>`;
-      }
     }
-    if (!s.hasDeps && chain.length > 1) {
-      chain.sort((a, b) => a.seq - b.seq);
-      for (let i = 0; i < chain.length - 1; i++) {
-        const p1 = positions.get(chain[i]), p2 = positions.get(chain[i + 1]);
-        if (p1.y === p2.y) continue;               // same row — skip horizontal clutter
-        edgeHtml += `<path class="chain" d="${edgePath(p1, p2, nodeH)}"/>`;
-      }
+    if (band.billboard) {
+      const b = band.billboard;
+      const el = document.createElement("div");
+      el.className = "tnode billboard" + (compactMode ? " compact" : "");
+      el.dataset.bb = s.id;
+      el.style.width = b.w + "px";
+      el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+      el.innerHTML = `<div class="tsub">◇ COMPLIANCE — ${b.done}/${b.total} VERIFIED</div>`;
+      frag.appendChild(el);
     }
   }
-  edges.innerHTML = edgeHtml;
   inner.appendChild(frag);
-  requestAnimationFrame(() => { for (const s of state.sessions.values()) for (const t of s.tasks.values()) if (t._el) t._el.style.transition = ""; });
+  syncEdges(bands, positions, nodeH);
+  requestAnimationFrame(() => { for (const el of nodeEls.values()) el.style.transition = ""; });
   boardRebuild = false;
   pendingAdds.length = 0;
-  restrokeSelEdges();
+  dirtyEdges.clear();
 }
 
+/* incremental adds + position sync */
 function applyAdds() {
-  // Incremental pass: recompute layout, SYNC every visible node's transform
-  // (bands below a grown band shift — transform changes don't restart CSS
-  // animations, so sliding existing nodes is safe), create missing elements,
-  // and rebuild the edge layer wholesale (pure paths, nothing animated inside).
   const { positions, bands, height, nodeH } = computeLayout();
-  const inner = $("boardInner"), edges = $("edges");
+  lastPositions = positions;
+  const inner = $("boardInner");
   $("boardEmpty").style.display = bands.length > 0 ? "none" : "flex";
   inner.style.height = height + "px";
+  const edges = $("edges");
   const w = $("board").clientWidth;
   edges.setAttribute("height", height); edges.setAttribute("viewBox", `0 0 ${w} ${height}`);
 
   const frag = document.createDocumentFragment();
   for (const [t, pos] of positions) {
+    const key = nk(t.sid, t.id);
     const tf = `translate(${pos.x}px, ${pos.y}px)`;
-    if (t._el && t._el.isConnected) {
-      if (t._el.style.transform !== tf) t._el.style.transform = tf;
-    } else {
-      const el = document.createElement("div");
-      fillNodeEl(el, t);
-      el.style.transform = tf;
-      t._el = el;
-      frag.appendChild(el);
+    const el = nodeEls.get(key);
+    if (el && el.isConnected) { if (el.style.transform !== tf) el.style.transform = tf; }
+    else {
+      const nel = document.createElement("div");
+      fillNodeEl(nel, t);
+      nel.style.transform = tf;
+      nodeEls.set(key, nel);
+      frag.appendChild(nel);
     }
   }
   inner.appendChild(frag);
+  syncEdges(bands, positions, nodeH);
 
-  let edgeHtml = "";
   for (const band of bands) {
-    if (band.freeform) continue;
-    const s = band.s, chain = [];
-    for (const [t, pos] of positions) {
-      if (t.sid !== s.id) continue;
-      chain.push(t);
-      for (const depId of t.blockedBy) {
-        const dep = s.tasks.get(depId);
-        const dp = dep && positions.get(dep);
-        if (dp) edgeHtml += `<path class="dep" data-to="${esc(t.sid)}:${esc(t.id)}" d="${edgePath(dp, pos, nodeH)}"/>`;
+    if (band.freeform) { if (band.s.tasks.size > 0) { boardRebuild = true; schedulePaint(); } continue; }
+    const h = inner.querySelector(`.band-header[data-sid="${CSS.escape(band.s.id)}"]`);
+    if (state.view === "all" && !h) { boardRebuild = true; schedulePaint(); continue; }
+    if (h) {
+      h.style.top = band.top + "px";
+      const meta = h.querySelector(".meta");
+      if (meta) meta.textContent = `${shortId(band.s.id)} · ${band.s.tasks.size} tasks · ${[...band.s.tasks.values()].filter(t => t.status === "completed").length} done${band.s.ended ? " · ended" : ""}`;
+    }
+    const bb = inner.querySelector(`.tnode.billboard[data-bb="${CSS.escape(band.s.id)}"]`);
+    if (band.billboard) {
+      if (!bb) { boardRebuild = true; schedulePaint(); }
+      else {
+        bb.style.transform = `translate(${band.billboard.x}px, ${band.billboard.y}px)`;
+        bb.querySelector(".tsub").textContent = `◇ COMPLIANCE — ${band.billboard.done}/${band.billboard.total} VERIFIED`;
       }
+    } else if (bb) bb.remove();
+    const m = inner.querySelector(`.more-chip[data-sid="${CSS.escape(band.s.id)}"]`);
+    if (m) { if (band.hidden > 0) { m.textContent = `+${band.hidden} MORE ▸`; m.style.top = band.moreY + "px"; } else m.remove(); }
+    else if (band.hidden > 0) { boardRebuild = true; schedulePaint(); }
+    // nodes that fell behind the +N MORE cap
+    if (band.hidden > 0) for (const t of band.s.tasks.values()) {
+      const el = nodeEls.get(nk(t.sid, t.id));
+      if (el && el.isConnected && !positions.has(t)) removeTaskNode(t);
     }
-    if (!s.hasDeps && chain.length > 1) {
-      chain.sort((a, b) => a.seq - b.seq);
-      for (let i = 0; i < chain.length - 1; i++) {
-        const p1 = positions.get(chain[i]), p2 = positions.get(chain[i + 1]);
-        if (p1.y === p2.y) continue;
-        edgeHtml += `<path class="chain" d="${edgePath(p1, p2, nodeH)}"/>`;
-      }
-    }
-  }
-  edges.innerHTML = edgeHtml;
-  restrokeSelEdges();
-
-  // nodes that fell behind a "+N MORE" cap lose their position — drop them
-  for (const band of bands) {
-    if (band.freeform || !band.hidden) continue;
-    for (const t of band.s.tasks.values()) {
-      if (t._el && t._el.isConnected && !positions.has(t)) removeTaskNode(t);
-    }
-  }
-
-  // band headers / +N MORE chips: sync position + counts
-  for (const band of bands) {
-    const h = $("boardInner").querySelector(`.band-header[data-sid="${CSS.escape(band.s.id)}"]`);
-    if (!h) { boardRebuild = true; schedulePaint(); continue; }   // new band appeared — needs a full pass
-    h.style.top = band.top + "px";
-    const meta = h.querySelector(".meta");
-    if (meta && !band.freeform) meta.textContent = `${shortId(band.s.id)} · ${band.s.tasks.size} tasks · ${[...band.s.tasks.values()].filter(t => t.status === "completed").length} done${band.s.ended ? " · ended" : ""}`;
-    const m = $("boardInner").querySelector(`.more-chip[data-sid="${CSS.escape(band.s.id)}"]`);
-    if (m) {
-      if (band.hidden > 0) { m.textContent = `+${band.hidden} MORE ▸`; m.style.top = band.moreY + "px"; }
-      else m.remove();
-    } else if (band.hidden > 0) { boardRebuild = true; schedulePaint(); }
   }
   pendingAdds.length = 0;
-
-  const wantCompact = positions.size > 48;
+  const wantCompact = positions.size > 32 || (state.view !== "all" && positions.size >= 24);
   if (wantCompact !== compactMode) { compactMode = wantCompact; boardRebuild = true; schedulePaint(); }
 }
 
-function removeTaskNode(t) { if (t._el) { t._el.remove(); t._el = null; } }
+/* ================================================================ header: run title / dropdown / progress / LINE / timer */
+function focusScope() { return state.view === "all" ? null : state.sessions.get(state.view); }
+function lineStateOf(s) {
+  if (s.ended) return "off";
+  if (s.attention > 0) return "waiting";
+  const now = Date.now();
+  const turnOpen = s.lastPromptMs > s.lastStopMs;
+  let toolLive = false;
+  for (const q of s.pending.values()) if (q.length && now - q[q.length - 1] < BUSY_TOOL_MS) { toolLive = true; break; }
+  return (turnOpen || toolLive) ? "busy" : "free";
+}
+function renderHeader() {
+  const pill = $("linePill");
+  const sessions = [...state.sessions.values()].filter(s => !s.evicted);
+  const s = focusScope();
+  if (s) {
+    const st = lineStateOf(s);
+    pill.className = `pill ${st}`;
+    pill.textContent = `LINE: ${st === "waiting" ? "WAITING !" : st.toUpperCase()}`;
+    $("runTitle").textContent = runTitleOf(s).toUpperCase().slice(0, 70);
+    const anchor = s.firstTaskMs || s.firstMs;
+    $("timer").textContent = fmtElapsed((s.ended ? s.endedMs : Date.now()) - anchor);
+    renderProgress(s);
+  } else {
+    const counts = { busy: 0, waiting: 0, free: 0, off: 0 };
+    for (const x of sessions) counts[lineStateOf(x)]++;
+    pill.className = `pill ${counts.waiting ? "waiting" : counts.busy ? "busy" : counts.free ? "free" : "off"}`;
+    const parts = [];
+    if (counts.busy) parts.push(`${counts.busy} BUSY`);
+    if (counts.waiting) parts.push(`${counts.waiting} WAITING`);
+    if (counts.free) parts.push(`${counts.free} FREE`);
+    pill.textContent = `LINE: ${parts.join(" · ") || "—"}`;
+    $("runTitle").textContent = `ALL SESSIONS (${sessions.length})`;
+    const live = sessions.filter(x => !x.ended);
+    $("timer").textContent = live.length ? fmtElapsed(Date.now() - Math.min(...live.map(x => x.firstMs))) : "00:00:00";
+    $("progWrap").hidden = true;
+  }
+  const totalAttn = sessions.reduce((n, x) => n + x.attention, 0);
+  $("runAttn").hidden = totalAttn === 0;
+  let running = 0;
+  for (const x of sessions) for (const a of x.agents.values()) running += a.running;
+  $("agentsPill").textContent = `AGENTS ${running}`;
+  $("forgedPill").textContent = `FORGED ${state.registry.length}`;
+  document.title = totalAttn > 0 ? `(${totalAttn}) FORGE — agent needs you` : "FORGE TERMINAL";
 
-function updateNodeEl(t) {
-  if (!t._el || !t._el.isConnected) return;
-  t._el.className = nodeClass(t);
-  t._el.querySelector(".tglyph").textContent = nodeGlyph(t);
-  const sub = t._el.querySelector(".tsub");
-  const cleaned = t.subject.replace(/^\s*\[(RULE|COMPLIANCE)\]\s*/i, "").replace(/^\s*RULE:\s*/i, "");
-  if (sub.textContent !== cleaned) sub.textContent = cleaned;
+  const now = Date.now();
+  while (rateWin.length && rateWin[0] < now - 60000) rateWin.shift();
+  $("rateLbl").textContent = `${compact(rateWin.length)}/m`;
+  const bins = new Array(28).fill(0);
+  for (const ms of rateWin) { const b = Math.floor((now - ms) / (60000 / 28)); if (b >= 0 && b < 28) bins[27 - b]++; }
+  const max = Math.max(...bins, 1);
+  $("spark").innerHTML = `<polyline points="${bins.map((v, i) => `${(i * 84 / 27).toFixed(1)},${(16 - (v / max) * 13).toFixed(1)}`).join(" ")}" fill="none" stroke="var(--seq)" stroke-width="1.2"/>`;
+}
+let progKeys = "";
+function renderProgress(s) {
+  const tasks = [...s.tasks.values()].sort((a, b) => a.seq - b.seq);
+  if (!tasks.length) { $("progWrap").hidden = true; return; }
+  $("progWrap").hidden = false;
+  const done = tasks.filter(t => t.status === "completed").length;
+  $("progLbl").textContent = `${done}/${tasks.length} · ${Math.round(done / tasks.length * 100)}%`;
+  const sig = tasks.map(t => t.id + (t.failCount > 0 && t.status !== "completed" ? "f" : t.status[0])).join(",");
+  if (sig === progKeys) return;
+  progKeys = sig;
+  $("progBar").innerHTML = tasks.map(t => {
+    const cls = t.status === "completed" ? "done" : t.status === "in_progress" ? "act" : (t.failCount > 0 ? "fail" : "");
+    return `<span class="seg ${cls}" data-tid="${esc(t.id)}" title="#${esc(t.id)} ${esc(cleanSubject(t.subject).slice(0, 40))}"></span>`;
+  }).join("");
 }
 
-function restrokeSelEdges() {
-  for (const p of $("edges").querySelectorAll("path.selin")) p.classList.remove("selin");
-  if (!state.sel) return;
-  for (const p of $("edges").querySelectorAll(`path[data-to="${CSS.escape(state.sel.sid + ":" + state.sel.tid)}"]`)) p.classList.add("selin");
-}
-
-/* ================================================================ chips */
-function sessionStatusGlyph(s) {
-  if (s.ended) return "○";
-  return (Date.now() - s.lastMs) < ACTIVE_MS ? "▸" : "◐";
-}
-function renderChips() {
-  const el = $("chips");
+/* run dropdown */
+function renderRunMenu() {
+  runMenuDirty = false;
+  const menu = $("runMenu");
   const sessions = [...state.sessions.values()].filter(s => !s.evicted).sort((a, b) => a.firstMs - b.firstMs);
-  let html = `<span class="chip ${state.view === "all" ? "selected" : ""}" data-view="all">ALL <span class="sid">${sessions.length}</span></span>`;
+  let html = `<div class="mi ${state.view === "all" ? "cur" : ""}" data-view="all"><span class="t">ALL SESSIONS</span><span class="meta">${sessions.length}</span></div>`;
   for (const s of sessions) {
-    const doneN = [...s.tasks.values()].filter(t => t.status === "completed").length;
-    html += `<span class="chip ${state.view === s.id ? "selected" : ""} ${s.ended ? "dim" : ""}" data-view="${esc(s.id)}">` +
-      `<span class="cdot" style="background:${s.color}"></span>${esc(s.app)} <span class="sid">${esc(shortId(s.id))}</span>` +
-      `<span class="st">${sessionStatusGlyph(s)}</span>` +
-      (s.tasks.size ? `<span class="sid">${doneN}/${s.tasks.size}</span>` : "") +
-      (s.attention ? `<span class="attn">!</span>` : "") + `</span>`;
+    const done = [...s.tasks.values()].filter(t => t.status === "completed").length;
+    html += `<div class="mi ${state.view === s.id ? "cur" : ""}" data-view="${esc(s.id)}">` +
+      `<span class="cdot" style="background:${s.color}"></span>` +
+      `<span class="t">${esc(runTitleOf(s)).toUpperCase()}</span>` +
+      `<span class="meta">${s.tasks.size ? `${done}/${s.tasks.size}` : "freeform"}${s.attention ? " !" : ""}${s.ended ? " · ended" : ""}</span></div>`;
   }
-  for (const cap of state.registry) {
-    html += `<span class="chip forgecap" title="${esc(cap.description || "")}">⚒ ${esc(cap.id)}</span>`;
-  }
-  el.innerHTML = html;
-  chipsDirty = false;
+  menu.innerHTML = html;
 }
+function switchView(v, manual) {
+  if (manual) state.viewManual = true;
+  if (state.view === v) return;
+  state.view = v;
+  state.filters.session = v === "all" ? "" : v;
+  $("fSession").value = state.filters.session;
+  state.sel = null;
+  exitReplay(false);
+  boardRebuild = true; tickerDirty = true; runMenuDirty = true; inspectorDirty = true;
+  progKeys = "";
+  rebuildLog(); schedulePaint();
+}
+
+/* ================================================================ NOW strip */
+function renderNow() {
+  let s = focusScope(), best = null;
+  const scope = s ? [s] : [...state.sessions.values()].filter(x => !x.evicted);
+  for (const x of scope) {
+    if (!x.activeTaskId) continue;
+    const t = x.tasks.get(x.activeTaskId);
+    if (t && (!best || t.startedMs > best.t.startedMs)) best = { s: x, t };
+  }
+  const dot = $("nowDot"), txt = $("nowTxt");
+  if (best) {
+    dot.style.background = best.s.color;
+    const el = Math.max(0, Date.now() - best.t.startedMs);
+    const mm = String(Math.floor(el / 60000)).padStart(2, "0"), ss = String(Math.floor(el / 1000) % 60).padStart(2, "0");
+    const label = `TASK ${best.t.id} — ${cleanSubject(best.t.activeForm || best.t.subject)}`;
+    txt.innerHTML = `<b>${esc(label.slice(0, 90))}</b> <span style="color:var(--muted)">· ${mm}:${ss}</span>`;
+  } else {
+    dot.style.background = "var(--baseline)";
+    const anyBusy = scope.some(x => lineStateOf(x) === "busy");
+    txt.textContent = anyBusy ? "agent working — no task pipeline active" : "idle — waiting for agents";
+  }
+}
+
+/* ================================================================ ticker */
+let tickerPending = null;
+function taskTotals() {
+  let tasksTotal = 0, tasksDone = 0;
+  for (const s of state.sessions.values()) {
+    if (s.evicted) continue;
+    tasksTotal += s.tasks.size;
+    for (const t of s.tasks.values()) if (t.status === "completed") tasksDone++;
+  }
+  return { tasksTotal, tasksDone };
+}
+function buildTickerHtml() {
+  const segs = [];
+  const scope = state.view === "all" ? [...state.sessions.values()].filter(s => !s.evicted) : [state.sessions.get(state.view)].filter(Boolean);
+  const rules = [];
+  for (const s of scope) for (const t of s.tasks.values()) if (t.isRule) rules.push(t);
+  if (rules.length) segs.push(rules.slice(0, 8).map(t => `<span class="rule">◇ ${esc(cleanSubject(t.subject))}${t.status === "completed" ? " ✓" : ""}</span>`).join(`<span class="sep">→</span>`));
+  const attn = state.events.filter(e => /^(Notification|PermissionRequest)$/.test(e.hook_event_name)).slice(-3);
+  for (const ev of attn) {
+    const p = ev.payload || {};
+    segs.push(`<span class="warn">! ${esc(String(p.message || ("permission: " + (p.tool_name || ""))).slice(0, 90))}</span>`);
+  }
+  for (const cap of state.registry.slice(-4)) segs.push(`<span class="forged">◆ forged: ${esc(cap.id)} (${esc(cap.type)})</span>`);
+  const tt = taskTotals();
+  segs.push(`${[...state.sessions.values()].filter(s => !s.evicted).length} SESSIONS · ${compact(rateWin.length)} EVT/MIN · ${tt.tasksTotal} TASKS · ${tt.tasksDone} DONE · ${compact(state.totalEvents)} EVENTS · 127.0.0.1:4000`);
+  const content = segs.join(`<span class="sep">·</span>`);
+  return `<span class="tickseg">${content}</span><span class="tickseg" aria-hidden="true">${content}</span>`;
+}
+function applyTicker(html) {
+  const track = $("tickerTrack");
+  track.innerHTML = html;
+  const w = track.scrollWidth / 2;
+  track.classList.toggle("scroll", w > $("ticker").clientWidth);
+  track.style.setProperty("--tickdur", `${Math.max(20, w / 70)}s`);
+}
+$("tickerTrack").addEventListener("animationiteration", () => { if (tickerPending) { applyTicker(tickerPending); tickerPending = null; } });
 
 /* ================================================================ inspector */
 function findTask(sid, tid) { const s = state.sessions.get(sid); return s && s.tasks.get(tid); }
-
 function relatedEvents(s, t) {
   const from = t.startedMs || t.createdMs, to = t.doneMs || Date.now();
   const out = [];
@@ -1128,7 +1517,6 @@ function relatedEvents(s, t) {
   }
   return out.reverse();
 }
-
 function renderInspector() {
   inspectorDirty = false;
   const box = $("insp");
@@ -1137,16 +1525,15 @@ function renderInspector() {
   const t = findTask(state.sel.sid, state.sel.tid);
   if (!s || !t) { box.innerHTML = `<div class="empty">Select a node to inspect it.</div>`; return; }
 
-  const glyphColor = t.status === "in_progress" ? "var(--cyan)" : t.status === "completed" ? "var(--good)" : "var(--muted)";
+  const glyphColor = t.status === "in_progress" ? "var(--cyan)" : t.status === "completed" ? "var(--good)" : t.failCount ? "var(--critical)" : "var(--muted)";
   let html = `<div class="isub"><span class="tg" style="color:${glyphColor}">${nodeGlyph(t)}</span>${esc(t.subject)}` +
     (t.isRule ? `<span class="tag rule">RULE</span>` : "") +
     (t.provisional ? `<span class="tag">PROVISIONAL</span>` : "") +
     (t.stub ? `<span class="tag">STUB</span>` : "") + `</div>`;
-  html += `<div class="irow"><span class="k">task</span><span class="v">#${esc(t.id)} · ${esc(t.status)}</span></div>`;
+  html += `<div class="irow"><span class="k">task</span><span class="v">#${esc(t.id)} · ${esc(t.status)}${t.durMs ? ` · ${fmtDur(t.durMs)}` : ""}${t.failCount ? ` · <span style="color:var(--critical)">${t.failCount} failure${t.failCount > 1 ? "s" : ""}</span>` : ""}</span></div>`;
   html += `<div class="irow"><span class="k">session</span><span class="v"><span class="schip" data-selsid="${esc(s.id)}"><span class="cdot" style="background:${s.color}"></span>${esc(s.app)} · ${esc(shortId(s.id))}</span></span></div>`;
   if (t.description) html += `<div class="irow"><span class="k">brief</span><span class="v">${esc(t.description.slice(0, 400))}</span></div>`;
   if (t.activeForm) html += `<div class="irow"><span class="k">active</span><span class="v">${esc(t.activeForm)}</span></div>`;
-
   if (t.blockedBy.size) {
     html += `<div class="sect"><div class="st">Blocked by</div>`;
     for (const depId of t.blockedBy) {
@@ -1155,146 +1542,183 @@ function renderInspector() {
     }
     html += `</div>`;
   }
-
   if (t.history.length) {
     html += `<div class="sect"><div class="st">Status history</div>`;
-    for (const h of t.history.slice(-8)) {
-      html += `<div class="hrow" data-ev="${h.evId}"><span class="t">${fmtTime(h.ms)}</span><span>→ ${esc(h.status)}</span><span class="t">(${esc(h.src)})</span></div>`;
-    }
+    for (const h of t.history.slice(-8)) html += `<div class="hrow" data-ev="${h.evId}"><span class="t">${fmtTime(h.ms)}</span><span>→ ${esc(h.status)}</span><span class="t">(${esc(h.src)})</span></div>`;
     html += `</div>`;
   }
-
   const rel = relatedEvents(s, t);
-  html += `<div class="sect"><div class="st">Related events · attributed by time window${rel.length > 30 ? ` (+${rel.length - 30} earlier)` : ""}</div>`;
+  html += `<div class="sect"><div class="st">Related events · by time window${rel.length > 30 ? ` (+${rel.length - 30} earlier)` : ""}</div>`;
   if (!rel.length) html += `<div class="irow"><span class="v" style="color:var(--muted)">none captured yet</span></div>`;
-  for (const ev of rel.slice(-30)) {
-    html += `<div class="erow" data-ev="${ev.id}"><span class="t">${fmtTime(ev._ms)}</span><span class="m">→ ${summarize(ev)}</span></div>`;
-  }
+  for (const ev of rel.slice(-30)) html += `<div class="erow" data-ev="${ev.id}"><span class="t">${fmtTime(ev._ms)}</span><span class="m">→ ${summarize(ev)}</span></div>`;
   html += `</div>`;
-
-  html += `<div class="foot"><button data-act="filterlog">FILTER LOG</button>` +
+  html += `<div class="foot"><button data-act="filterlog">FILTER LOG</button><button data-act="export">EXPORT ⬇</button>` +
     (s.transcriptPath ? `<button data-act="transcript">TRANSCRIPT</button>` : "") + `</div>`;
   box.innerHTML = html;
 }
-
 function selectTask(sid, tid) {
   const prev = state.sel ? findTask(state.sel.sid, state.sel.tid) : null;
-  state.sel = { sid, tid };
-  if (prev) { dirtyTasks.add(prev); }
-  const t = findTask(sid, tid);
-  if (t) dirtyTasks.add(t);
+  state.sel = sid ? { sid, tid } : null;
+  if (prev) { dirtyTasks.add(prev); dirtyEdges.add(nk(prev.sid, prev.id)); }
+  const t = sid && findTask(sid, tid);
+  if (t) { dirtyTasks.add(t); dirtyEdges.add(nk(sid, tid)); }
   inspectorDirty = true;
-  restrokeSelEdges();
-  if (innerWidth <= 1100) { $("inspPanel").classList.add("open"); $("inspClose").style.display = ""; }
+  if (sid && innerWidth <= 1100) { $("inspPanel").classList.add("open"); $("inspClose").style.display = ""; }
   schedulePaint();
 }
 
-/* ================================================================ topbar: LINE, timer, sparkline, counters */
-function lineStateOf(s) {
-  if (s.ended) return "off";
-  if (s.attention > 0) return "waiting";
-  const now = Date.now();
-  const turnOpen = s.lastPromptMs > s.lastStopMs;
-  let toolLive = false;
-  for (const q of s.pending.values()) if (q.length && now - q[q.length - 1] < BUSY_TOOL_MS) { toolLive = true; break; }
-  if (turnOpen || toolLive) return "busy";
-  return "free";
+/* ================================================================ FOLLOW */
+let followScrollPending = false;
+function followTo(sid, tid) {
+  if (state.replayIdx != null) return;
+  if (state.view !== "all" && state.view !== sid) return;
+  if (followScrollPending) return;
+  followScrollPending = true;
+  requestAnimationFrame(() => {
+    followScrollPending = false;
+    const el = nodeEls.get(nk(sid, tid));
+    if (el && el.isConnected) el.scrollIntoView({ block: "center", behavior: "smooth" });
+  });
 }
-
-function renderTopbar() {
-  const pill = $("linePill");
-  const sessions = [...state.sessions.values()].filter(s => !s.evicted);
-  if (state.view !== "all") {
-    const s = state.sessions.get(state.view);
-    const st = s ? lineStateOf(s) : "off";
-    pill.className = `pill ${st}`;
-    pill.textContent = `LINE: ${st === "waiting" ? "WAITING !" : st.toUpperCase()}`;
-    $("runTitle").textContent = s ? `${s.app} · ${shortId(s.id)}` : "—";
-    const endMs = s && s.ended ? s.endedMs : Date.now();
-    $("timer").textContent = s ? fmtElapsed(endMs - s.firstMs) : "T+00:00:00";
-  } else {
-    const counts = { busy: 0, waiting: 0, free: 0, off: 0 };
-    for (const s of sessions) counts[lineStateOf(s)]++;
-    const cls = counts.waiting ? "waiting" : counts.busy ? "busy" : counts.free ? "free" : "off";
-    pill.className = `pill ${cls}`;
-    const parts = [];
-    if (counts.busy) parts.push(`${counts.busy} BUSY`);
-    if (counts.waiting) parts.push(`${counts.waiting} WAITING`);
-    if (counts.free) parts.push(`${counts.free} FREE`);
-    pill.textContent = `LINE: ${parts.join(" · ") || "—"}`;
-    $("runTitle").textContent = `ALL SESSIONS (${sessions.length})`;
-    const live = sessions.filter(s => !s.ended);
-    const anchor = live.length ? Math.min(...live.map(s => s.firstMs)) : 0;
-    $("timer").textContent = anchor ? fmtElapsed(Date.now() - anchor) : "T+00:00:00";
+function setFollow(on) {
+  state.follow = on;
+  $("btnFollow").classList.toggle("fon", on);
+  if (on) {
+    const s = focusScope();
+    const scope = s ? [s] : [...state.sessions.values()];
+    for (const x of scope) if (x.activeTaskId) { followTo(x.id, x.activeTaskId); break; }
   }
-
-  let running = 0, attention = 0, tasksTotal = 0, tasksDone = 0;
-  for (const s of sessions) {
-    attention += s.attention;
-    for (const a of s.agents.values()) running += a.running;
-    tasksTotal += s.tasks.size;
-    for (const t of s.tasks.values()) if (t.status === "completed") tasksDone++;
-  }
-  $("agentsPill").textContent = `AGENTS ${running}`;
-  $("forgedPill").textContent = `FORGED ${state.registry.length}`;
-  document.title = attention > 0 ? `(${attention}) FORGE — agent needs you` : "FORGE TERMINAL";
-
-  // rate + sparkline
-  const now = Date.now();
-  while (rateWin.length && rateWin[0] < now - 60000) rateWin.shift();
-  $("rateLbl").textContent = `${compact(rateWin.length)}/m`;
-  const bins = new Array(32).fill(0);
-  for (const ms of rateWin) {
-    const b = Math.floor((now - ms) / (60000 / 32));
-    if (b >= 0 && b < 32) bins[31 - b]++;
-  }
-  const max = Math.max(...bins, 1);
-  const pts = bins.map((v, i) => `${(i * 96 / 31).toFixed(1)},${(18 - (v / max) * 15).toFixed(1)}`).join(" ");
-  $("spark").innerHTML = `<polyline points="${pts}" fill="none" stroke="var(--seq)" stroke-width="1.2"/>`;
-  return { tasksTotal, tasksDone, sessionsN: sessions.length };
 }
+$("board").addEventListener("wheel", () => { if (state.follow) setFollow(false); }, { passive: true });
+$("board").addEventListener("pointerdown", (e) => { if (state.follow && !e.target.closest("#boardCtl, #scrub")) setFollow(false); });
 
-/* ================================================================ ticker */
-let tickerPending = null;
-function buildTickerHtml(stats) {
-  const segs = [];
-  const scope = state.view === "all" ? [...state.sessions.values()].filter(s => !s.evicted) : [state.sessions.get(state.view)].filter(Boolean);
-  const rules = [];
-  for (const s of scope) for (const t of s.tasks.values()) if (t.isRule) rules.push(t);
-  if (rules.length) {
-    segs.push(rules.slice(0, 8).map(t => `<span class="rule">◇ ${esc(t.subject.replace(/^\s*\[(RULE|COMPLIANCE)\]\s*/i, ""))}${t.status === "completed" ? " ✓" : ""}</span>`).join(`<span class="sep">→</span>`));
-  }
-  const attn = state.events.filter(e => /^(Notification|PermissionRequest)$/.test(e.hook_event_name)).slice(-3);
-  for (const ev of attn) {
+/* ================================================================ STATS + EXPORT */
+function statsScopeEvents() {
+  const s = focusScope();
+  return s ? state.events.filter(e => e.session_id === s.id) : state.events;
+}
+function openStatsModal() {
+  const body = openModal(`Stats · ${focusScope() ? runTitleOf(focusScope()).slice(0, 50) : "all sessions"}`);
+  const evs = statsScopeEvents();
+  const tools = new Map();
+  let failures = 0;
+  for (const ev of evs) {
     const p = ev.payload || {};
-    segs.push(`<span class="warn">! ${esc(String(p.message || ("permission: " + (p.tool_name || ""))).slice(0, 90))}</span>`);
+    if (ev.hook_event_name === "PostToolUse" && p.tool_name && !TASK_TOOLS.has(p.tool_name)) tools.set(p.tool_name, (tools.get(p.tool_name) || 0) + 1);
+    if (ev.hook_event_name === "PostToolUseFailure") failures++;
   }
-  for (const cap of state.registry.slice(-4)) segs.push(`<span class="forged">⚒ forged: ${esc(cap.id)} (${esc(cap.type)})</span>`);
-  segs.push(`${stats.sessionsN} SESSIONS · ${compact(rateWin.length)} EVT/MIN · ${stats.tasksTotal} TASKS · ${stats.tasksDone} DONE`);
-  const content = segs.join(`<span class="sep">·</span>`);
-  return `<span class="tickseg">${content}</span><span class="tickseg" aria-hidden="true">${content}</span>`;
-}
-function applyTicker(html) {
-  const track = $("tickerTrack");
-  track.innerHTML = html;
-  const w = track.scrollWidth / 2;
-  const fits = w <= $("ticker").clientWidth;
-  track.classList.toggle("scroll", !fits);
-  track.style.setProperty("--tickdur", `${Math.max(20, w / 70)}s`);
-}
-$("tickerTrack").addEventListener("animationiteration", () => {
-  if (tickerPending) { applyTicker(tickerPending); tickerPending = null; }
-});
+  const scope = focusScope() ? [focusScope()] : [...state.sessions.values()].filter(s => !s.evicted);
+  const durs = [];
+  for (const s of scope) for (const t of s.tasks.values()) if (t.durMs > 0) durs.push(t.durMs);
+  durs.sort((a, b) => a - b);
+  const avg = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : 0;
+  const med = durs.length ? durs[Math.floor(durs.length / 2)] : 0;
 
-/* ================================================================ modal (payload / registry / transcript) */
+  const top = [...tools.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const maxN = top.length ? top[0][1] : 1;
+  let html = `<div class="stath">Tool usage (${evs.length} events in scope)</div>`;
+  html += top.map(([name, n]) => `<div class="statrow"><span class="sk">${esc(name)}</span><span class="sbar" style="width:${Math.max(2, n / maxN * 260)}px"></span><span class="sv">${n}</span></div>`).join("") || `<div class="statrow"><span class="sv">no tool events yet</span></div>`;
+  html += `<div class="stath">Tasks</div>`;
+  html += `<div class="statrow"><span class="sk">completed w/ timing</span><span class="sv">${durs.length}</span></div>`;
+  html += `<div class="statrow"><span class="sk">avg task duration</span><span class="sv">${durs.length ? fmtDur(avg) : "—"}</span></div>`;
+  html += `<div class="statrow"><span class="sk">median task duration</span><span class="sv">${durs.length ? fmtDur(med) : "—"}</span></div>`;
+  html += `<div class="stath">Failures</div>`;
+  html += `<div class="statrow"><span class="sk">tool failures</span><span class="sv" style="color:${failures ? "var(--critical)" : "var(--muted)"}">${failures}</span></div>`;
+  body.innerHTML = html;
+  $("modalExport").style.display = focusScope() ? "" : "none";
+}
+function exportRun(s) {
+  if (!s) return;
+  const tasks = [...s.tasks.values()].sort((a, b) => a.seq - b.seq);
+  const rules = tasks.filter(t => t.isRule);
+  const mdEsc = (x) => String(x).replace(/\|/g, "\\|");
+  let md = `# FORGE run report — ${runTitleOf(s)}\n\n`;
+  md += `- session: \`${s.id}\` (${s.app})\n- started: ${new Date(s.firstMs).toISOString()}\n- tasks: ${tasks.length} · done ${tasks.filter(t => t.status === "completed").length}\n- exported: ${new Date().toISOString()}\n\n`;
+  md += `## Tasks\n\n| # | task | status | duration | failures |\n|---|------|--------|----------|----------|\n`;
+  for (const t of tasks.filter(t => !t.isRule)) md += `| ${t.id} | ${mdEsc(t.subject)} | ${t.status} | ${t.durMs ? fmtDur(t.durMs) : ""} | ${t.failCount || ""} |\n`;
+  if (rules.length) {
+    md += `\n## Compliance rules\n\n`;
+    for (const r of rules) md += `- ${r.status === "completed" ? "✓" : "✗"} ${mdEsc(cleanSubject(r.subject))} — ${r.status}\n`;
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([md], { type: "text/markdown" }));
+  a.download = `forge-run-${shortId(s.id)}.md`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/* ================================================================ REPLAY-lite */
+function replayAvailable() { return state.view !== "all" && !!focusScope() && focusScope().tasks.size > 0; }
+function statusAt(t, evId) {
+  let st = null;
+  for (const h of t.history) { if (h.evId <= evId) st = h.status; else break; }
+  return st || "pending";
+}
+function renderReplay(evId) {
+  const s = focusScope();
+  if (!s) return;
+  for (const t of s.tasks.values()) {
+    const el = nodeEls.get(nk(t.sid, t.id));
+    if (!el || !el.isConnected) continue;
+    const visible = t.createdEvId <= evId;
+    el.style.visibility = visible ? "" : "hidden";
+    if (!visible) continue;
+    const st = statusAt(t, evId);
+    let c = `tnode st-${st}`;
+    if (t.isRule) c += " rule";
+    if (compactMode) c += " compact";
+    el.className = c;
+    el.querySelector(".tglyph").textContent = t.isRule && st === "pending" ? "◇" : (STATUS_GLYPH[st] || "·");
+  }
+  const rstat = (t) => t.createdEvId <= evId ? statusAt(t, evId) : "pending";
+  for (const el of edgeEls.values()) {
+    const d = el._desc;
+    if (!d || d.from.sid !== s.id) continue;
+    const bothVisible = d.from.createdEvId <= evId && d.to.createdEvId <= evId;
+    el.style.visibility = bothVisible ? "" : "hidden";
+    if (bothVisible) el.setAttribute("class", edgeClass(d, rstat));
+  }
+  const ev = state.byId.get(evId) || state.events[state.events.length - 1];
+  $("scrubL").textContent = ev ? fmtTime(ev._ms) : "";
+}
+let scrubPending = null;
+function onScrub() {
+  const idx = Number($("scrubR").value);
+  const ev = state.events[idx];
+  if (!ev) return;
+  state.replayIdx = ev.id;
+  document.body.classList.add("replaying");
+  if (scrubPending == null) {
+    scrubPending = requestAnimationFrame(() => {
+      scrubPending = null;
+      if (state.replayIdx != null) renderReplay(state.replayIdx);
+    });
+  }
+}
+function exitReplay(repaint = true) {
+  if (state.replayIdx == null) return;
+  state.replayIdx = null;
+  document.body.classList.remove("replaying");
+  $("scrubR").value = $("scrubR").max;
+  $("scrubL").textContent = "buffered start";
+  if (repaint) { boardRebuild = true; schedulePaint(); }
+}
+function syncScrubRange() {
+  const r = $("scrubR");
+  r.max = Math.max(0, state.events.length - 1);
+  if (state.replayIdx == null) r.value = r.max;
+  $("scrub").classList.toggle("avail", replayAvailable());
+}
+$("scrubR").addEventListener("input", onScrub);
+$("btnLive2").onclick = () => exitReplay();
+
+/* ================================================================ modal / tooltip / boot */
 const overlay = $("overlay");
-function openModal(title) { $("modalTitle").textContent = title; $("modalBody").innerHTML = ""; overlay.classList.add("open"); return $("modalBody"); }
+function openModal(title) { $("modalTitle").textContent = title; $("modalBody").innerHTML = ""; $("modalExport").style.display = "none"; overlay.classList.add("open"); return $("modalBody"); }
 function closeModal() { overlay.classList.remove("open"); }
 $("modalClose").onclick = closeModal;
+$("modalExport").onclick = () => exportRun(focusScope());
 overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { closeModal(); $("inspPanel").classList.remove("open"); }
-});
 
 function openPayloadModal(evId) {
   const ev = state.byId.get(Number(evId));
@@ -1305,15 +1729,13 @@ function openPayloadModal(evId) {
   pre.textContent = JSON.stringify(clean, null, 2);
   body.appendChild(pre);
 }
-
 function openRegistryModal() {
   const body = openModal(`Forged capabilities · ${state.registry.length}`);
   if (!state.registry.length) { body.innerHTML = `<div style="color:var(--muted)">Nothing forged yet — /forge-build creates capabilities, /forge-plan runs builds.</div>`; return; }
   body.innerHTML = state.registry.map(c =>
-    `<div class="regrow"><span class="rid">⚒ ${esc(c.id)}</span><span class="rtype">${esc(c.type || "")}</span>` +
+    `<div class="regrow"><span class="rid">◆ ${esc(c.id)}</span><span class="rtype">${esc(c.type || "")}</span>` +
     `<span class="rdesc">${esc(c.description || "")}${c.invoke ? `<span class="inv">${esc(c.invoke)}</span>` : ""}</span></div>`).join("");
 }
-
 async function openTranscript(s) {
   if (!s || !s.transcriptPath) return;
   const body = openModal(`Transcript · ${s.app} · ${shortId(s.id)}`);
@@ -1334,9 +1756,10 @@ async function openTranscript(s) {
       if (!text.trim()) continue;
       const div = document.createElement("div");
       div.className = `turn ${role}`;
-      const r = document.createElement("div"); r.className = "role"; r.textContent = role.toUpperCase();
-      const tx = document.createElement("div"); tx.className = "text"; tx.textContent = text.length > 4000 ? text.slice(0, 4000) + " …" : text;
-      div.append(r, tx); body.appendChild(div);
+      div.innerHTML = `<div class="role">${role.toUpperCase()}</div>`;
+      const tx = document.createElement("div"); tx.className = "text";
+      tx.textContent = text.length > 4000 ? text.slice(0, 4000) + " …" : text;
+      div.appendChild(tx); body.appendChild(div);
       if (++shown >= 300) break;
     }
     if (!shown) body.innerHTML = `<div style="color:var(--muted)">No user/assistant text turns found in this transcript tail.</div>`;
@@ -1345,133 +1768,7 @@ async function openTranscript(s) {
   }
 }
 
-/* ================================================================ paint */
-function paint() {
-  paintScheduled = false;
-  if (chipsDirty) renderChips();
-  if (boardRebuild) rebuildBoard();
-  else if (pendingAdds.length) applyAdds();
-  if (dirtyTasks.size) { for (const t of dirtyTasks) updateNodeEl(t); dirtyTasks.clear(); }
-  if (inspectorDirty) renderInspector();
-  if (tickerDirty) {
-    const stats = { sessionsN: [...state.sessions.values()].filter(s => !s.evicted).length, ...taskTotals() };
-    const html = buildTickerHtml(stats);
-    if ($("tickerTrack").classList.contains("scroll") && document.body.classList.contains("anim")) tickerPending = html;
-    else applyTicker(html);
-    tickerDirty = false;
-  }
-  flushLog();
-}
-function taskTotals() {
-  let tasksTotal = 0, tasksDone = 0;
-  for (const s of state.sessions.values()) {
-    if (s.evicted) continue;
-    tasksTotal += s.tasks.size;
-    for (const t of s.tasks.values()) if (t.status === "completed") tasksDone++;
-  }
-  return { tasksTotal, tasksDone };
-}
-
-/* ================================================================ interaction wiring */
-$("chips").addEventListener("click", (e) => {
-  const chip = e.target.closest(".chip[data-view]");
-  if (!chip) return;
-  const v = chip.dataset.view;
-  if (state.view === v) return;
-  state.view = v;
-  state.filters.session = v === "all" ? "" : v;
-  $("fSession").value = state.filters.session;
-  chipsDirty = true; boardRebuild = true; tickerDirty = true;
-  rebuildLog(); schedulePaint();
-});
-$("chips").addEventListener("dblclick", (e) => {
-  const chip = e.target.closest(".chip[data-view]");
-  if (!chip || chip.dataset.view === "all") return;
-  openTranscript(state.sessions.get(chip.dataset.view));
-});
-
-$("board").addEventListener("click", (e) => {
-  const more = e.target.closest(".more-chip, .band-header");
-  if (more) {
-    state.view = more.dataset.sid;
-    state.filters.session = more.dataset.sid;
-    $("fSession").value = state.filters.session;
-    chipsDirty = true; boardRebuild = true; tickerDirty = true;
-    rebuildLog(); schedulePaint();
-    return;
-  }
-  const node = e.target.closest(".tnode");
-  if (node && node.dataset.tid) selectTask(node.dataset.sid, node.dataset.tid);
-});
-
-$("insp").addEventListener("click", (e) => {
-  const dep = e.target.closest("[data-dep]");
-  if (dep && state.sel) { const t = findTask(state.sel.sid, dep.dataset.dep); if (t) return selectTask(state.sel.sid, t.id); }
-  const evRow = e.target.closest("[data-ev]");
-  if (evRow) return openPayloadModal(evRow.dataset.ev);
-  const sChip = e.target.closest("[data-selsid]");
-  if (sChip) {
-    state.view = sChip.dataset.selsid; state.filters.session = state.view;
-    $("fSession").value = state.view;
-    chipsDirty = true; boardRebuild = true; rebuildLog(); schedulePaint(); return;
-  }
-  const act = e.target.closest("[data-act]");
-  if (act && state.sel) {
-    const s = state.sessions.get(state.sel.sid);
-    const t = findTask(state.sel.sid, state.sel.tid);
-    if (act.dataset.act === "transcript") openTranscript(s);
-    if (act.dataset.act === "filterlog" && t) {
-      state.filters.session = s.id; $("fSession").value = s.id;
-      $("fSearch").value = t.subject.slice(0, 40); state.filters.q = t.subject.slice(0, 40).toLowerCase();
-      rebuildLog();
-    }
-  }
-});
-$("inspClose").onclick = () => $("inspPanel").classList.remove("open");
-
-logEl.addEventListener("click", (e) => {
-  const row = e.target.closest(".row");
-  if (row) openPayloadModal(row.dataset.id);
-});
-logEl.addEventListener("scroll", () => {
-  state.stick = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 40;
-});
-
-$("fSession").onchange = (e) => { state.filters.session = e.target.value; rebuildLog(); };
-$("fApp").onchange = (e) => { state.filters.app = e.target.value; rebuildLog(); };
-$("fType").onchange = (e) => { state.filters.type = e.target.value; rebuildLog(); };
-let searchTimer = null;
-$("fSearch").addEventListener("input", (e) => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => { state.filters.q = e.target.value.trim().toLowerCase(); rebuildLog(); }, 150);
-});
-$("btnClear").onclick = () => { logEl.innerHTML = ""; };
-$("btnLive").onclick = () => {
-  state.paused = !state.paused;
-  const b = $("btnLive");
-  b.classList.toggle("on", !state.paused);
-  b.textContent = state.paused ? "❚❚ PAUSED" : "● LIVE";
-  if (!state.paused) { rebuildLog(); state.stick = true; }
-};
-$("forgedPill").onclick = openRegistryModal;
-$("fxPill").onclick = () => {
-  const on = !document.body.classList.contains("fx");
-  document.body.classList.toggle("fx", on);
-  document.body.classList.toggle("anim", on);
-  try { localStorage.setItem("forge-fx", on ? "1" : "0"); } catch {}
-};
-try { if (localStorage.getItem("forge-fx") === "0") { document.body.classList.remove("fx", "anim"); } } catch {}
-
-/* scanline overlay sits over the board only */
-function placeScan() {
-  const r = $("board").getBoundingClientRect();
-  const scan = $("scan");
-  scan.style.left = r.left + "px"; scan.style.top = r.top + "px";
-  scan.style.width = r.width + "px"; scan.style.height = r.height + "px";
-}
-addEventListener("resize", () => { placeScan(); boardRebuild = true; schedulePaint(); });
-
-/* tooltip for chips + nodes (rAF-throttled) */
+/* tooltip (rAF-throttled) */
 let lastMove = null, moveScheduled = false;
 document.addEventListener("mousemove", (e) => {
   lastMove = e;
@@ -1485,7 +1782,7 @@ function processMove() {
     const t = findTask(node.dataset.sid, node.dataset.tid);
     if (t) {
       tip.innerHTML = `<div style="color:var(--ink);margin-bottom:2px">${esc(t.subject)}</div>` +
-        `<div>#${esc(t.id)} · ${esc(t.status)}${t.isRule ? " · ◇ rule" : ""}</div>` +
+        `<div>#${esc(t.id)} · ${esc(t.status)}${t.isRule ? " · ◇ rule" : ""}${t.durMs ? ` · ${fmtDur(t.durMs)}` : ""}${t.failCount ? ` · ${t.failCount} fail` : ""}</div>` +
         (t.startedMs ? `<div style="color:var(--muted)">started ${fmtTime(t.startedMs)}${t.doneMs ? ` · done ${fmtTime(t.doneMs)}` : ""}</div>` : "");
       tip.style.display = "block";
       const r = tip.getBoundingClientRect();
@@ -1497,17 +1794,230 @@ function processMove() {
   tip.style.display = "none";
 }
 
-/* ================================================================ SSE */
-let es = null, resurrectTimer = null;
-function connect() {
-  if (es) { try { es.close(); } catch {} }
-  es = new EventSource("/stream");
-  es.addEventListener("init", (m) => {
-    const data = JSON.parse(m.data);
+/* boot splash */
+function bootSplash() {
+  let seen = false;
+  try { seen = sessionStorage.getItem("forge-boot") === "1"; } catch {}
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (seen || reduced || !document.body.classList.contains("fx") || new URLSearchParams(location.search).has("noboot")) return;
+  try { sessionStorage.setItem("forge-boot", "1"); } catch {}
+  const boot = $("boot"), pre = $("bootTxt");
+  boot.classList.add("on");
+  const lines = ["FORGE OS v3", "hooks armed ................ <span class='c'>OK</span>", "event stream ............... <span class='c'>OK</span>", "board online"];
+  let li = 0, ci = 0, out = "";
+  const t = setInterval(() => {
+    const plain = lines[li].replace(/<[^>]+>/g, "");
+    ci += 3;
+    pre.innerHTML = out + (ci >= plain.length ? lines[li] : esc(plain.slice(0, ci))) + "▍";
+    if (ci >= plain.length) { out += lines[li] + "\n"; li++; ci = 0; }
+    if (li >= lines.length) { clearInterval(t); setTimeout(() => boot.classList.remove("on"), 250); }
+  }, 28);
+  boot.onclick = () => { clearInterval(t); boot.classList.remove("on"); };
+}
+
+/* ================================================================ paint */
+function paint() {
+  paintScheduled = false;
+  const replaying = state.replayIdx != null;
+  if (!replaying) {
+    if (boardRebuild) rebuildBoard();
+    else if (pendingAdds.length) applyAdds();
+    if (dirtyTasks.size) { for (const t of dirtyTasks) updateNodeEl(t); dirtyTasks.clear(); }
+    syncDirtyEdgeClasses();
+    if (inspectorDirty) renderInspector();
+  } else {
+    dirtyTasks.clear(); // board writes deferred until LIVE
+  }
+  if (runMenuDirty) renderRunMenu();
+  if (tickerDirty) {
+    const html = buildTickerHtml();
+    if ($("tickerTrack").classList.contains("scroll") && document.body.classList.contains("anim")) tickerPending = html;
+    else applyTicker(html);
+    tickerDirty = false;
+  }
+  syncScrubRange();
+  flushLog();
+}
+
+/* ================================================================ interactions */
+$("runBtn").onclick = (e) => {
+  e.stopPropagation();
+  const menu = $("runMenu");
+  if (menu.classList.contains("open")) { menu.classList.remove("open"); return; }
+  renderRunMenu();
+  const r = $("runBtn").getBoundingClientRect();
+  menu.style.left = Math.min(r.left, innerWidth - 470) + "px";
+  menu.style.top = (r.bottom + 4) + "px";
+  menu.classList.add("open");
+};
+document.addEventListener("click", (e) => { if (!e.target.closest("#runMenu")) $("runMenu").classList.remove("open"); });
+$("runMenu").addEventListener("click", (e) => {
+  const mi = e.target.closest(".mi");
+  if (!mi) return;
+  $("runMenu").classList.remove("open");
+  switchView(mi.dataset.view, true);
+});
+
+$("progBar").addEventListener("click", (e) => {
+  const seg = e.target.closest(".seg");
+  const s = focusScope();
+  if (seg && s) selectTask(s.id, seg.dataset.tid);
+});
+
+$("board").addEventListener("click", (e) => {
+  const more = e.target.closest(".more-chip, .band-header");
+  if (more && more.dataset.sid) { switchView(more.dataset.sid, true); return; }
+  const bb = e.target.closest(".tnode.billboard");
+  if (bb) { setBoardFilter(state.boardFilter === "rules" ? "all" : "rules"); return; }
+  const node = e.target.closest(".tnode[data-tid]");
+  if (node) selectTask(node.dataset.sid, node.dataset.tid);
+});
+$("board").addEventListener("dblclick", (e) => {
+  const node = e.target.closest(".tnode[data-tid]");
+  if (node) openTranscript(state.sessions.get(node.dataset.sid));
+});
+
+function setBoardFilter(f) {
+  state.boardFilter = f;
+  for (const b of document.querySelectorAll("#boardCtl [data-bf]")) b.classList.toggle("fon", b.dataset.bf === f);
+  for (const s of state.sessions.values()) for (const t of s.tasks.values()) { dirtyTasks.add(t); dirtyEdges.add(nk(s.id, t.id)); }
+  schedulePaint();
+}
+for (const b of document.querySelectorAll("#boardCtl [data-bf]")) b.onclick = () => setBoardFilter(b.dataset.bf);
+$("btnFollow").onclick = () => setFollow(!state.follow);
+
+$("insp").addEventListener("click", (e) => {
+  const dep = e.target.closest("[data-dep]");
+  if (dep && state.sel) { const t = findTask(state.sel.sid, dep.dataset.dep); if (t) return selectTask(state.sel.sid, t.id); }
+  const evRow = e.target.closest("[data-ev]");
+  if (evRow) return openPayloadModal(evRow.dataset.ev);
+  const sChip = e.target.closest("[data-selsid]");
+  if (sChip) return switchView(sChip.dataset.selsid, true);
+  const act = e.target.closest("[data-act]");
+  if (act && state.sel) {
+    const s = state.sessions.get(state.sel.sid);
+    const t = findTask(state.sel.sid, state.sel.tid);
+    if (act.dataset.act === "transcript") openTranscript(s);
+    if (act.dataset.act === "export") exportRun(s);
+    if (act.dataset.act === "filterlog" && t) {
+      state.filters.session = s.id; $("fSession").value = s.id;
+      $("fSearch").value = cleanSubject(t.subject).slice(0, 40);
+      state.filters.q = $("fSearch").value.toLowerCase();
+      rebuildLog();
+    }
+  }
+});
+$("inspClose").onclick = () => $("inspPanel").classList.remove("open");
+
+logEl.addEventListener("click", (e) => {
+  const row = e.target.closest(".row");
+  if (row && row.dataset.id) openPayloadModal(row.dataset.id);
+});
+logEl.addEventListener("scroll", () => { state.stick = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 40; });
+
+$("fSession").onchange = (e) => { state.filters.session = e.target.value; rebuildLog(); };
+$("fType").onchange = (e) => { state.filters.type = e.target.value; rebuildLog(); };
+let searchTimer = null;
+$("fSearch").addEventListener("input", (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.filters.q = e.target.value.trim().toLowerCase(); rebuildLog(); }, 150);
+});
+$("btnDetail").onclick = () => {
+  state.detailMode = !state.detailMode;
+  $("btnDetail").classList.toggle("on", state.detailMode);
+  $("btnDetail").setAttribute("aria-pressed", String(state.detailMode));
+  rebuildLog();
+};
+$("btnClear").onclick = () => { logEl.innerHTML = ""; coalesce.clear(); };
+$("btnLive").onclick = () => {
+  state.paused = !state.paused;
+  const b = $("btnLive");
+  b.classList.toggle("on", !state.paused);
+  b.textContent = state.paused ? "❚❚ PAUSED" : "● LIVE";
+  if (!state.paused) { rebuildLog(); state.stick = true; }
+};
+$("forgedPill").onclick = openRegistryModal;
+$("statsPill").onclick = openStatsModal;
+for (const id of ["forgedPill", "statsPill", "fxPill"]) {
+  $(id).addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $(id).click(); } });
+}
+$("fxPill").onclick = () => {
+  const on = !document.body.classList.contains("fx");
+  document.body.classList.toggle("fx", on);
+  document.body.classList.toggle("anim", on);
+  try { localStorage.setItem("forge-fx", on ? "1" : "0"); } catch {}
+};
+try { if (localStorage.getItem("forge-fx") === "0") document.body.classList.remove("fx", "anim"); } catch {}
+
+/* keyboard map — precedence: modal > replay > drawer > selection */
+document.addEventListener("keydown", (e) => {
+  const inField = /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName);
+  if (e.key === "Escape") {
+    if (overlay.classList.contains("open")) return closeModal();
+    if (state.replayIdx != null) return exitReplay();
+    if ($("inspPanel").classList.contains("open") && innerWidth <= 1100) return $("inspPanel").classList.remove("open");
+    if (state.sel) return selectTask(null);
+    return;
+  }
+  if (inField) return;
+  if (e.key === "/") { e.preventDefault(); $("fSearch").focus(); return; }
+  if (e.key === "f" || e.key === "F") { setFollow(!state.follow); return; }
+  if (/^Arrow(Left|Right|Up|Down)$/.test(e.key)) {
+    e.preventDefault();
+    arrowNav(e.key.slice(5).toLowerCase());
+  }
+});
+function arrowNav(dir) {
+  const entries = [...lastPositions.entries()].filter(([t]) => state.view === "all" || t.sid === state.view);
+  if (!entries.length) return;
+  let cur = state.sel && entries.find(([t]) => t.sid === state.sel.sid && t.id === state.sel.tid);
+  if (!cur) { const [t] = entries[0]; return selectTask(t.sid, t.id); }
+  const [ct, cp] = cur;
+  let best = null, bestScore = Infinity;
+  for (const [t, p] of entries) {
+    if (t === ct) continue;
+    const dx = p.x - cp.x, dy = p.y - cp.y;
+    const ok = dir === "left" ? dx < -4 && Math.abs(dy) <= Math.abs(dx)
+             : dir === "right" ? dx > 4 && Math.abs(dy) <= Math.abs(dx)
+             : dir === "up" ? dy < -4 && Math.abs(dx) <= Math.abs(dy) * 2
+             : dy > 4 && Math.abs(dx) <= Math.abs(dy) * 2;
+    if (!ok) continue;
+    const score = Math.abs(dx) + Math.abs(dy);
+    if (score < bestScore) { bestScore = score; best = t; }
+  }
+  if (best) {
+    selectTask(best.sid, best.id);
+    const el = nodeEls.get(nk(best.sid, best.id));
+    if (el) el.scrollIntoView({ block: "nearest" });
+  }
+}
+
+/* fixed overlays track the board rect */
+function placeOverlays() {
+  const r = $("board").getBoundingClientRect();
+  for (const id of ["scan", "vignette"]) {
+    const el = $(id);
+    el.style.left = r.left + "px"; el.style.top = r.top + "px";
+    el.style.width = r.width + "px"; el.style.height = r.height + "px";
+  }
+}
+addEventListener("resize", () => { placeOverlays(); boardRebuild = true; schedulePaint(); });
+
+/* ================================================================ live transport — incremental polling
+   Complete 1s /api/sync responses instead of a held SSE stream: network-
+   inspection software on some machines buffers browsers' streaming response
+   bodies indefinitely (headers arrive, body never does), which permanently
+   stalls EventSource AND fetch-streaming. Small completed responses always
+   pass. Latency cost ≈1s; the timer/LINE/pulse tick locally anyway. */
+let pollTimer = null, pollCtrl = null, lastEvId = 0, serverBoot = 0, pollFrozen = false;
+function markConnecting() { $("livePill").className = "pill dead"; $("liveTxt").textContent = "RECONNECTING"; }
+
+function handleInit(data) {
     state.events = []; state.byId.clear(); state.sessions.clear();
-    state.seenTypes.clear(); state.seenApps.clear();
-    slots.fill(null); rateWin.length = 0; logQueue = [];
-    dirtyTasks.clear(); pendingAdds.length = 0;
+    state.seenTypes.clear();
+    slots.fill(null); rateWin.length = 0; logQueue = []; coalesce.clear();
+    dirtyTasks.clear(); dirtyEdges.clear(); pendingAdds.length = 0;
+    nodeEls.clear(); edgeEls.clear();
     state.registry = (data.registry && data.registry.capabilities) || [];
     state.totalEvents = (data.totals && data.totals.events) || (data.events || []).length;
     const cutoff = Date.now() - 60000;
@@ -1517,35 +2027,101 @@ function connect() {
     }
     rateWin.sort((a, b) => a - b);
     const want = new URLSearchParams(location.search).get("view");
-    if (want) {
-      for (const sid of state.sessions.keys()) {
-        if (sid.startsWith(want)) { state.view = sid; state.filters.session = sid; break; }
-      }
-    }
+    if (want === "all") { state.view = "all"; state.filters.session = ""; state.viewManual = true; }
+    else if (want) for (const sid of state.sessions.keys()) if (sid.startsWith(want)) { state.view = sid; state.filters.session = sid; $("fSession").value = sid; state.viewManual = true; break; }
     if (state.view !== "all" && !state.sessions.has(state.view)) state.view = "all";
+    if (!state.viewManual && state.view === "all") {
+      // default-to-run on load: newest session that has a pipeline
+      const withTasks = [...state.sessions.values()].filter(s => s.tasks.size > 0 && !s.ended).sort((a, b) => b.lastMs - a.lastMs);
+      if (withTasks[0]) { state.view = withTasks[0].id; state.filters.session = withTasks[0].id; $("fSession").value = withTasks[0].id; }
+    }
     const wantSel = new URLSearchParams(location.search).get("sel");
     if (wantSel && state.view !== "all" && findTask(state.view, wantSel)) state.sel = { sid: state.view, tid: wantSel };
-    if (state.sel && !findTask(state.sel.sid, state.sel.tid)) state.sel = null;
     $("livePill").className = "pill live"; $("liveTxt").textContent = "LIVE";
-    refreshSelect("fSession"); refreshSelect("fApp"); refreshSelect("fType");
-    chipsDirty = true; boardRebuild = true; tickerDirty = true; inspectorDirty = true;
-    rebuildLog(); renderTopbar(); schedulePaint();
-  });
-  es.addEventListener("ev", (m) => {
-    state.totalEvents++;
-    ingest(JSON.parse(m.data), false);
-  });
-  es.addEventListener("registry", (m) => {
-    state.registry = JSON.parse(m.data).capabilities || [];
-    chipsDirty = true; tickerDirty = true; schedulePaint();
-  });
-  es.onerror = () => {
-    $("livePill").className = "pill dead"; $("liveTxt").textContent = "RECONNECTING";
-    if (es.readyState === 2) {
-      clearTimeout(resurrectTimer);
-      resurrectTimer = setTimeout(connect, 2000);
+    refreshSelect("fSession"); refreshSelect("fType");
+    boardRebuild = true; tickerDirty = true; inspectorDirty = true; runMenuDirty = true;
+    exitReplay(false);
+    rebuildLog(); renderHeader(); renderNow(); schedulePaint();
+    lastEvId = state.events.length ? state.events[state.events.length - 1].id : 0;
+    serverBoot = data.boot || 0;
+    // ?shot=<ms>: freeze mode for headless captures — stop polling after
+    // settling so the page reaches network-idle and --screenshot/--dump-dom fire.
+    const shot = new URLSearchParams(location.search).get("shot");
+    if (shot != null) setTimeout(() => { pollFrozen = true; clearTimeout(pollTimer); }, Math.min(5000, Number(shot) || 800));
+}
+
+let registrySig = "";
+async function fetchSync(after) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const res = await fetch(`/api/sync?after=${after}`, { signal: ctrl.signal, cache: "no-store" });
+    if (!res.ok) throw new Error("sync " + res.status);
+    return await res.json();
+  } finally { clearTimeout(t); }
+}
+async function pollOnce(full) {
+  if (pollFrozen) return;
+  try {
+    if (full) {
+      // drain the whole ring in pages, then build the world once
+      let after = 0, all = [], data;
+      do {
+        data = await fetchSync(after);
+        all = all.concat(data.events || []);
+        if (all.length) after = all[all.length - 1].id;
+      } while (data.more && !pollFrozen);
+      data.events = all;
+      handleInit(data);
+      registrySig = JSON.stringify((data.registry && data.registry.capabilities) || []);
+    } else {
+      let data;
+      do {
+        data = await fetchSync(lastEvId);
+        if (serverBoot && data.boot !== serverBoot) { connect(); return; }   // server restarted
+        for (const ev of data.events || []) {
+          ingest(ev, false);
+          lastEvId = Math.max(lastEvId, ev.id);
+        }
+        if (data.totals && data.totals.events) state.totalEvents = data.totals.events;
+      } while (data.more && !pollFrozen);
+      const rs = JSON.stringify((data.registry && data.registry.capabilities) || []);
+      if (rs !== registrySig) {
+        registrySig = rs;
+        state.registry = JSON.parse(rs);
+        tickerDirty = true; runMenuDirty = true; schedulePaint();
+      }
+      if ($("liveTxt").textContent !== "LIVE") { $("livePill").className = "pill live"; $("liveTxt").textContent = "LIVE"; }
     }
-  };
+  } catch {
+    if (!pollFrozen) markConnecting();
+  } finally {
+    if (!pollFrozen) pollTimer = setTimeout(() => pollOnce(false), 1000);
+  }
+}
+function connect() {
+  clearTimeout(pollTimer);
+  // ?snap: deterministic one-shot for headless captures — drain synchronously
+  // during load (the capturer waits for load), render once, no polling after.
+  if (new URLSearchParams(location.search).has("snap")) {
+    pollFrozen = true;
+    try {
+      let after = 0, all = [], data;
+      do {
+        const x = new XMLHttpRequest();
+        x.open("GET", "/api/sync?after=" + after, false);
+        x.send();
+        data = JSON.parse(x.responseText);
+        all = all.concat(data.events || []);
+        if (all.length) after = all[all.length - 1].id;
+      } while (data.more);
+      data.events = all;
+      handleInit(data);
+    } catch { markConnecting(); }
+    return;
+  }
+  pollFrozen = false;
+  pollOnce(true);
 }
 
 /* ================================================================ 1Hz tick */
@@ -1556,21 +2132,13 @@ setInterval(() => {
     if (s.ended && s.endedMs && s.tasks.size === 0 && now - s.endedMs > EVICT_MS) { evict(s); schedulePaint(); continue; }
     for (const a of s.agents.values()) if (a.running > 0 && !a._stale && now - a.lastStartMs > STALE_MS) a._stale = true;
   }
-  const stats = renderTopbar();
+  renderHeader(); renderNow();
   if (now - lastHeartbeatMs > 30000) { lastHeartbeatMs = now; tickerDirty = true; }
-  // chip status glyphs go stale as sessions idle — cheap text refresh
-  if (!chipsDirty) {
-    for (const chip of $("chips").querySelectorAll(".chip[data-view]")) {
-      const s = state.sessions.get(chip.dataset.view);
-      if (!s) continue;
-      const st = chip.querySelector(".st");
-      if (st) { const g = sessionStatusGlyph(s); if (st.textContent !== g) st.textContent = g; }
-    }
-  }
-  if (tickerDirty || chipsDirty || dirtyTasks.size || inspectorDirty) schedulePaint();
+  if (tickerDirty || dirtyTasks.size || dirtyEdges.size || inspectorDirty || runMenuDirty) schedulePaint();
 }, 1000);
 
-placeScan();
+placeOverlays();
+bootSplash();
 connect();
 </script>
 </body>
