@@ -105,7 +105,8 @@ diagnostic page.
 node --test server/server.test.js
 ```
 
-Transcript access tests use a temporary server, home directory, and synthetic
+Transcript access tests cover POSIX and Windows path rules independently of the
+host filesystem. HTTP tests use a temporary server, home directory, and synthetic
 files. They do not read your Claude sessions or write to the repository's data.
 
 ## Uninstall / pause

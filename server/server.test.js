@@ -8,6 +8,7 @@ const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
 const { after, before, test } = require("node:test");
+const isDescendant = require("./is_descendant");
 
 const entry = { type: "message", text: "synthetic transcript" };
 let fixture;
@@ -31,6 +32,7 @@ before(async () => {
   const serverFile = path.join(fixture, "server", "server.js");
   fs.mkdirSync(path.dirname(serverFile), { recursive: true });
   fs.copyFileSync(path.join(__dirname, "server.js"), serverFile);
+  fs.copyFileSync(path.join(__dirname, "is_descendant.js"), path.join(fixture, "server", "is_descendant.js"));
 
   const probe = net.createServer();
   probe.listen(0, "127.0.0.1");
@@ -78,6 +80,37 @@ async function transcript(file) {
   });
   return { status: response.status, body: await response.json() };
 }
+
+test("checks POSIX containment independently of filesystem casing", () => {
+  const root = "/home/forge/.claude";
+  for (const [candidate, expected] of [
+    [root + "/session.jsonl", true],
+    ["/home/forge/.CLAUDE/session.jsonl", false],
+    [root, false],
+    ["/home/forge", false],
+    ["/home/forge/.claude-other/session.jsonl", false],
+    [root + "/../.CLAUDE/session.jsonl", false],
+    [root + "/..archive/session.jsonl", true],
+  ]) {
+    assert.equal(isDescendant(root, candidate, path.posix), expected, candidate);
+  }
+});
+
+test("checks Windows containment independently of the host platform", () => {
+  const root = "C:\\Users\\forge\\.claude";
+  for (const [candidate, expected] of [
+    [root + "\\session.jsonl", true],
+    ["c:\\users\\FORGE\\.CLAUDE\\session.jsonl", true],
+    [root, false],
+    ["C:\\Users\\forge", false],
+    ["C:\\Users\\forge\\.claude-other\\session.jsonl", false],
+    ["D:\\Users\\forge\\.claude\\session.jsonl", false],
+    [root + "\\..\\.claude-other\\session.jsonl", false],
+    [root + "\\..archive\\session.jsonl", true],
+  ]) {
+    assert.equal(isDescendant(root, candidate, path.win32), expected, candidate);
+  }
+});
 
 test("reads a transcript inside ~/.claude", async () => {
   const result = await transcript(allowedFile);
