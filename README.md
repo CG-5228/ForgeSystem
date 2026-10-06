@@ -99,6 +99,15 @@ diagnostic page.
 - Known limitation: cross-session shared task lists aren't merged; each session's
   tasks render in its own band.
 
+## Tests
+
+```
+node --test server/server.test.js
+```
+
+Transcript access tests use a temporary server, home directory, and synthetic
+files. They do not read your Claude sessions or write to the repository's data.
+
 ## Uninstall / pause
 
 Delete the `"hooks"` block from `~/.claude/settings.json` (takes effect
