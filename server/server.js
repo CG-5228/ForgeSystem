@@ -7,6 +7,12 @@
  * sends no CORS headers (the dashboard is same-origin; a wildcard here would
  * let any webpage you visit read your prompts).
  *
+ * Binding to loopback is not enough on its own, so every request is also
+ * checked against a local Host allowlist (blocks DNS rebinding), and every
+ * write must carry a local Origin — or none, as Node fetch / curl send — plus
+ * Content-Type: application/json (blocks cross-site "simple" POSTs). See the
+ * request guards below.
+ *
  *   node server/server.js          → http://127.0.0.1:4000
  *   FORGE_PORT=5000 node server/server.js
  */
@@ -32,9 +38,32 @@ const BOOT_MS = Date.now();          // sync clients detect restarts by boot sta
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
-// Transcript viewing is restricted to files that really live under ~/.claude
-let CLAUDE_HOME = null;
-try { CLAUDE_HOME = fs.realpathSync(path.join(os.homedir(), ".claude")); } catch { /* no ~/.claude yet */ }
+// Transcript viewing is restricted to *.jsonl session files that really live
+// under ~/.claude/projects — never the rest of ~/.claude (e.g. .credentials.json)
+let TRANSCRIPT_ROOT = null;
+try { TRANSCRIPT_ROOT = fs.realpathSync(path.join(os.homedir(), ".claude", "projects")); } catch { /* no ~/.claude/projects yet */ }
+
+// ---------------------------------------------------------------- request guards
+// The server only listens on 127.0.0.1, but a webpage can still reach it:
+//  - DNS rebinding: a page on attacker.example re-pointed to 127.0.0.1 becomes
+//    same-origin, so the missing CORS headers no longer protect reads.
+//  - CSRF: a cross-site fetch(..., { mode: "no-cors", body }) sends text/plain
+//    with no preflight; the write lands even though the response is unreadable.
+// So: every request must carry a local Host, and every POST must come from a
+// local Origin (or none — Node fetch / curl send no Origin) with a JSON body.
+const LOCAL_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);
+const LOCAL_ORIGINS = new Set([...LOCAL_HOSTS].map((h) => `http://${h}`));
+
+function isLocalHost(req) {
+  return LOCAL_HOSTS.has(String(req.headers.host || "").trim().toLowerCase());
+}
+
+function isLocalWrite(req) {
+  const origin = req.headers.origin;
+  if (origin !== undefined && !LOCAL_ORIGINS.has(String(origin).trim().toLowerCase())) return false;
+  const ct = String(req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+  return ct === "application/json";
+}
 
 // ---------------------------------------------------------------- state
 let events = [];       // in-memory ring
@@ -150,7 +179,17 @@ function ingest(raw) {
 
 // ---------------------------------------------------------------- server
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  // Host allowlist: a DNS-rebound page sends its own hostname here.
+  if (!isLocalHost(req)) {
+    return json(res, 403, { error: "forbidden: Host must be 127.0.0.1:" + PORT + " or localhost:" + PORT });
+  }
+  // Writes: local Origin (or none) + JSON Content-Type. A browser cannot send
+  // application/json cross-site without a CORS preflight, which we never answer.
+  if (req.method === "POST" && !isLocalWrite(req)) {
+    return json(res, 403, { error: "forbidden: cross-site write (local Origin and Content-Type: application/json required)" });
+  }
+
+  const url = new URL(req.url, `http://${req.headers.host}`);
 
   // Dashboard
   if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
@@ -239,16 +278,18 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // Per-session transcript (drill-down) — hardened to ~/.claude only
+  // Per-session transcript (drill-down) — hardened to *.jsonl under ~/.claude/projects only
   if (req.method === "GET" && url.pathname === "/api/transcript") {
     const p = url.searchParams.get("path") || "";
-    if (!CLAUDE_HOME) return json(res, 404, { error: "~/.claude not found" });
+    if (!TRANSCRIPT_ROOT) return json(res, 404, { error: "~/.claude/projects not found" });
     try {
       const resolved = fs.realpathSync(path.resolve(p)); // throws if missing; collapses ../, 8.3 names, symlinks
-      if (!resolved.toLowerCase().startsWith(CLAUDE_HOME.toLowerCase() + path.sep)) {
-        return json(res, 403, { error: "path outside ~/.claude" });
+      if (!resolved.toLowerCase().startsWith(TRANSCRIPT_ROOT.toLowerCase() + path.sep) ||
+          path.extname(resolved).toLowerCase() !== ".jsonl") {
+        return json(res, 403, { error: "only *.jsonl transcripts under ~/.claude/projects are served" });
       }
       const stat = fs.statSync(resolved);
+      if (!stat.isFile()) return json(res, 403, { error: "not a regular file" });
       const start = Math.max(0, stat.size - 2 * 1024 * 1024); // tail 2MB max
       const buf = Buffer.alloc(stat.size - start);
       const fd = fs.openSync(resolved, "r");
