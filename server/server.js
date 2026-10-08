@@ -16,6 +16,7 @@ const http = require("http");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const isDescendant = require("./is_descendant");
 
 const PORT = Number(process.env.FORGE_PORT) || 4000;
 const HOST = "127.0.0.1";
@@ -245,7 +246,7 @@ const server = http.createServer(async (req, res) => {
     if (!CLAUDE_HOME) return json(res, 404, { error: "~/.claude not found" });
     try {
       const resolved = fs.realpathSync(path.resolve(p)); // throws if missing; collapses ../, 8.3 names, symlinks
-      if (!resolved.toLowerCase().startsWith(CLAUDE_HOME.toLowerCase() + path.sep)) {
+      if (!isDescendant(CLAUDE_HOME, resolved)) {
         return json(res, 403, { error: "path outside ~/.claude" });
       }
       const stat = fs.statSync(resolved);
